@@ -1,28 +1,80 @@
 # Migration state
 
 **App:** Advanced Queues for Jira Service Management. Pro (`com.appbox.ai.advanced.queues`)
-**Stage:** Phase 1 complete apart from two items only the user can do.
+**Stage:** Phases 1 and 2 complete. Both gates green. Phase 3 (bridge + routing)
+is next.
 **Updated:** 2026-09-07
 
 ## Next action
 
-**One thing blocks Phase 2: the app ARI.** `forge register` must be run by a
-human — it requires accepting the Atlassian Developer Terms **and a billing
-agreement** ("I agree to be billed for any excess usage"), which an agent must
-not accept on the account holder's behalf. The `-y` flag would auto-accept both;
-do not use it from an agent.
+**A force-push is outstanding, and it must happen before any other push.**
+
+The first push carried 97 MB of Angular build cache (see below). History has been
+rewritten locally to remove it, so the remote and local branches have diverged
+and an ordinary `git push` will be rejected as non-fast-forward. The agent's
+force-push was blocked by the permission classifier, so this one is the user's:
 
 ```bash
 cd /Users/rahulabx2/Work/Appbox/advanced-queues/advanced-queues-forge
-forge register "Advanced Queues for Jira Service Management" -s b962437b-0fc3-4504-964b-6f8a494ab322
+git push --force-with-lease origin main
 ```
 
-Developer space `b962437b-0fc3-4504-964b-6f8a494ab322` resolves to **Appbox.ai**
-(verified — the CLI printed it before stopping at the agreement). `forge create`
-is the wrong command here; the repo already exists, which is also why
-`init-migration.mjs` skipped its own `forge create` call.
+Safe to force here: the branch is four days old at most, was created by this
+migration, and nobody else has cloned it.
 
-Until that runs, `manifest.yml` keeps `REPLACE_WITH_APP_ARI`.
+Then Phase 3 — bridge + routing, the `ui-bridge` barrier.
+
+## App registered
+
+`forge register` run by the user 2026-09-07 in developer space
+`b962437b-0fc3-4504-964b-6f8a494ab322` (Appbox.ai). ARI written into
+`manifest.yml`:
+
+```
+ari:cloud:ecosystem::app/d9c91408-9ee5-43a9-8336-4cec143708b9
+```
+
+Console: https://developer.atlassian.com/console/myapps/d9c91408-9ee5-43a9-8336-4cec143708b9/overview
+
+Note for the playbook: `forge register` stops at an agreement covering the
+Atlassian Developer Terms **and billing** ("I agree to be billed for any excess
+usage"). `-y` auto-accepts both and must not be used by an agent.
+
+## Phase 2 — done
+
+Commit `1dd5bda`. Three Connect module types became two Forge modules.
+
+| Connect | Forge |
+| --- | --- |
+| `jiraProjectPages` / `advanced-queues-project` | `jira:projectPage` |
+| `webSections` / `advanced-queues-section` | absorbed — a Forge web section has no counterpart and needs none |
+| `adminPages` / `project-enablement` | `jira:adminPage` |
+
+The condition tree ported 1:1, with two things that are easy to get wrong:
+Forge's `and`/`or` are **maps, not lists**, and the `not: entityPropertyExists`
+branch is load-bearing — an absent property means "never configured", which
+Connect treated as enabled, so dropping it would hide the app from every project
+that has not opened the settings screen.
+
+**Gates:**
+
+```
+forge lint            No issues found
+check-scope-ceiling   within ceiling (exit 0)
+script self-check     9 passed
+```
+
+`forge lint` is also what validated the four scope names that had no in-house
+precedent.
+
+## Second gap in the shared gate, same shape as R2
+
+`check-scope-ceiling.mjs` was missing `read:user.property:jira` and
+`write:user.property:jira` as well as the JSM rows — Advanced Queues is the
+first of the four apps to store **user-scoped** entity properties, so nothing
+had ever exercised them. Both added and mapped to READ/WRITE, with a self-check
+assertion. Worth expecting a third gap on the next app: the map only covers what
+previous migrations happened to need.
 
 ## Resolved since Phase 1
 
@@ -40,9 +92,28 @@ Until that runs, `manifest.yml` keeps `REPLACE_WITH_APP_ARI`.
   assertions cover it, including that JSM *write* still escalates against a
   READ-only ceiling.
 
+## The build-cache mistake, and the upstream fix
+
+The first push carried **97 MB of Angular build cache across 382 files**
+(`static/forge-angular-app/.angular/`), one pack file of which tripped GitHub's
+50 MB warning. Cause: `init-migration.mjs` generates a `.gitignore` covering
+`node_modules/` and `dist/` but **not `.angular/`**, and Angular 12+ writes that
+cache on every build — so the scaffold → build → commit order guarantees it
+exists by the time anyone runs `git add`. The pre-commit check looked for
+`node_modules` and `dist` and did not think to look for it.
+
+Fixed in three places:
+
+1. History rewritten with `git filter-branch --index-filter` to strip the path
+   from all commits. Local `main` verified clean; only the stale
+   `refs/remotes/origin/main` still referenced it, which the force-push clears.
+2. `.angular/` added to this repo's `.gitignore` (commit `e1a5353`).
+3. **`init-migration.mjs`'s `.gitignore` template fixed**, so the next migration
+   does not repeat it.
+
 ## Phase 1 — done
 
-Local commit `adb93d3` on `main`, **not pushed**.
+Commits `bd165b0`, `c8b032a` (hashes changed in the history rewrite).
 
 - Scaffolded with `init-migration.mjs --no-create`. Angular tree copied (not
   submoduled), inner `src/` tracked, no `node_modules` or `dist` leaked. Both of
