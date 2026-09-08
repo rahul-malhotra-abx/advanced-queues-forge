@@ -5,6 +5,75 @@
 Phase 5 (iframe pass) is next and needs a real install.
 **Updated:** 2026-09-07
 
+## Phase 7 — audit done. FOUR claims broken. Do not submit yet.
+
+Full report: [`findings/04-audit.md`](findings/04-audit.md). Verdicts: C1 partly
+broken, C2 survived, **C3 broken**, C4 survived, C5 survived, **C6 broken**,
+**C7 broken**.
+
+### The blocker — a permission bypass, inherited not introduced
+
+`jira.service.ts:508` builds `/rest/api/3/mypermissions?permissions=…` **with no
+`projectId` or `projectKey`**. Five call sites pass
+`['SYSTEM_ADMIN','ADMINISTER','ADMINISTER_PROJECTS']`
+(`queues`, `queue`, `edit-queues`, `add-edit-folders`, `import-queues`).
+
+Without a project context Jira answers *"does this user hold the permission in
+at least one project"*, so **anyone who administers any single unrelated project
+gets `isAdmin = true` on every project's queue page**, and the shared queue and
+folder editing UI unlocks site-wide.
+
+Jira then correctly refuses the `PUT /rest/api/3/project/{id}/properties` — but
+every `StorageService.save()` in `queues.component.ts` (10+ sites) is called with
+**no `await` and no `.catch`**, so the 403 becomes an unhandled rejection behind
+an optimistic UI. The edit appears to succeed and is never stored.
+
+**Pre-existing, not a port regression** — identical code at
+`advanced-queues-connect` `jira.service.ts:439`. It nonetheless ships in the
+Forge app, and it is Trap 1 verbatim.
+
+**Fixing it changes who can edit queues**, so it is a product decision, not a
+port decision.
+
+### Why every gate missed it
+
+`forge-audit.mjs` regex-matches `resolver.define` bodies. **This app has zero
+resolvers, so "0 findings" is guaranteed by construction rather than earned.**
+The green gate on an empty resolver says nothing about the client-side code where
+all the authorization now lives. Worth folding back into the playbook: the FSRT
+static check does not cover a no-resolver app.
+
+### Also broken
+
+- **C3 — `read:avatar:jira` has no call site.** Avatars arrive on `avatarUrls`
+  from user endpoints that `read:jira-user` already covers. An unused scope is an
+  extra consent prompt and a review question. Remove it.
+- **C6 — no licence gate anywhere.** `manifest.yml` sets
+  `licensing.enabled: true`, but nothing reads `context.license`, and
+  `ALLOW_UNLICENSED` / `FREE_VERSION` / `PAID_VERSION` are read by nothing. An
+  unlicensed install is fully functional.
+- **C7 — `cdn.pixabay.com` fallback avatar**, three sites in
+  `autocomplete.component.ts`. CSP-blocked on Forge, leaks a request to a third
+  party, and `permissions.external` would forfeit Runs on Atlassian. Line 29 has
+  the real source (`params.node.data.fields.avatarUrls['16x16']`) commented out
+  right beside it. Also still present: `getParentDomain()`, two `appbox.ai`
+  anchors, and the now-unused `@forge/api` / `@forge/kvs` root deps.
+
+### One auditor claim NOT supported
+
+It reported that "the platform gates validated a different artifact than the one
+on disk". The evidence contradicts that: `forge version list` for the deployed v2
+matches this manifest on **scopes (10), modules (projectPage + adminPage),
+functions (1), egresses (0) and policies (2)**. Two fields are unexplained and
+worth confirming before submission — `connectKeys: "2"` where the manifest
+declares one, and `requiresLicense: false` against `licensing.enabled: true`
+(plausibly a Marketplace-side setting rather than a manifest one) — but "a
+different artifact" overreaches.
+
+Separately: `forge eligibility --environment production` reports on version
+**1.1.0**, not this tree. Nothing has been deployed to production, so that check
+is not meaningful yet.
+
 ## Branch and PR structure
 
 Phases are **stacked PRs**, one per logical unit, on `rahul-malhotra-abx/advanced-queues-forge`:
