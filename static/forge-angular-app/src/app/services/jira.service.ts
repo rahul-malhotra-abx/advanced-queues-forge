@@ -265,35 +265,40 @@ export class JiraService {
     return allMatches;
   }
 
-  static async getApplicationProperties(property: string) {
-    const response = await this.AP.request({
-      url: `/rest/atlassian-connect/1/addons/${ENVIRONMENT.APP_KEY}/properties/`,
-      type: 'GET',
-      contentType: 'application/json',
-    });
-    let keyIndex = response.keys.findIndex((k: { key: string }) => k.key === property);
-    if (keyIndex > -1) {
-      const response = await this.AP.request({
-        url: `/rest/atlassian-connect/1/addons/${ENVIRONMENT.APP_KEY}/properties/${property}`,
-        type: 'GET',
-        contentType: 'application/json',
-      });
-      const returnObj: { [key: string]: any } = {};
-      returnObj[response.key] = response.value;
-      return response?.value ? returnObj : {};
-    }
-    return {};
-  }
+  // get/saveApplicationProperties are DELETED (decisions.md 5). They were the
+  // app's only use of Connect's add-on property store,
+  // /rest/atlassian-connect/1/addons/<key>/properties, which nothing serves on
+  // Forge — every call would 404.
+  //
+  // Nothing is stranded: the APPLICATION storage context that called them was
+  // branch-only with no constructor anywhere in the app, so that store is empty
+  // on every tenant. There is no data to migrate and no reason to reach for
+  // @forge/kvs, which is why this app declares no `storage:app` scope.
 
-  static async saveApplicationProperties(properties: any[]) {
-    for (const property of properties) {
-      await this.AP.request({
-        url: `/rest/atlassian-connect/1/addons/${ENVIRONMENT.APP_KEY}/properties/${property.key}`,
-        type: 'PUT',
-        contentType: 'application/json',
-        data: JSON.stringify(property.value),
-      });
+  /**
+   * Trap 7. The project-admin-settings property has been written by Connect and
+   * is now read by Forge, and Connect's `entityPropertyEqualTo` compares
+   * stringified values — so `advancedQueuesEnabled` can come back as a boolean
+   * or as the strings "true"/"false".
+   *
+   * The string form is the dangerous one: `"false"` is TRUTHY in JavaScript, so
+   * an unnormalised value makes a DISABLED project's toggle render "Enabled"
+   * while the manifest's own `entityPropertyEqualTo` correctly hides the module.
+   * The admin screen and the actual behaviour then disagree, which reads as data
+   * loss rather than a display bug.
+   *
+   * Both readers of this property route through here — `getProjectSettings`
+   * below, and the bulk project fetch in project-enablement.component — so the
+   * coercion lives in one place rather than at each call site.
+   *
+   * Returns the original reference when there is nothing to fix.
+   */
+  static normaliseProjectAdminSettings(raw: any): any {
+    if (!raw || typeof raw !== 'object') {
+      return raw;
     }
+    const flag = raw.advancedQueuesEnabled;
+    return typeof flag === 'string' ? { ...raw, advancedQueuesEnabled: flag.trim().toLowerCase() === 'true' } : raw;
   }
 
   static async getProjectSettings(projectIdOrKey: any) {
@@ -317,7 +322,7 @@ export class JiraService {
             type: 'GET',
             contentType: 'application/json',
           });
-          return projectSetting.value;
+          return this.normaliseProjectAdminSettings(projectSetting.value);
         } else {
           return undefined;
         }

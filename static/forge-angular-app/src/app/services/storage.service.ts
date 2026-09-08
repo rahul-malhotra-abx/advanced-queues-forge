@@ -44,8 +44,6 @@ export class StorageService {
       await JiraService.saveUserProperties(this.referenceKey, propertiesArray);
     } else if (this.storageContext === StorageContext.TICKET) {
       await JiraService.saveTicketProperties(this.referenceKey, propertiesArray);
-    } else if (this.storageContext === StorageContext.APPLICATION) {
-      await JiraService.saveApplicationProperties(propertiesArray);
     }
   }
 
@@ -58,8 +56,6 @@ export class StorageService {
       propertyArrayResponse = await JiraService.getUserProperties(this.referenceKey, propertyArray);
     } else if (this.storageContext === StorageContext.TICKET) {
       propertyArrayResponse = await JiraService.getTicketProperties(this.referenceKey, propertyArray);
-    } else if (this.storageContext === StorageContext.APPLICATION) {
-      propertyArrayResponse = await JiraService.getApplicationProperties(propertyArray[0]);
     }
     return UtilsService.mergeJiraDataKeys(propertyArrayResponse, this.storageBaseKey);
   }

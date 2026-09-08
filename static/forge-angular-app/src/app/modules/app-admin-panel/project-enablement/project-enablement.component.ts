@@ -50,7 +50,12 @@ export class ProjectEnablementComponent implements OnInit {
         project.properties[`${ENVIRONMENT.APP_BASE_KEY}_${DataStorageKeys.PROJECT_ADMIN_SETTINGS}`] =
           UtilsService.deepCopy(DefaultProjectAdminSettings);
       }
-      project.adminSettings = project.properties[`${ENVIRONMENT.APP_BASE_KEY}_${DataStorageKeys.PROJECT_ADMIN_SETTINGS}`];
+      // Normalised, not read raw: a Connect-written flag can be the string
+      // "false", which is truthy and would render this toggle as Enabled for a
+      // project that is actually disabled. See JiraService.normaliseProjectAdminSettings.
+      project.adminSettings = JiraService.normaliseProjectAdminSettings(
+        project.properties[`${ENVIRONMENT.APP_BASE_KEY}_${DataStorageKeys.PROJECT_ADMIN_SETTINGS}`]
+      );
     }
     this.pageLoaded = true;
   }
