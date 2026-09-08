@@ -1,3 +1,4 @@
+import { requestJira, router, showFlag, view } from '@forge/bridge';
 import { JiraUserModel } from '../models/jira.user.model';
 import { UtilsService } from './utils.service';
 import { ENVIRONMENT } from '../environment';
@@ -8,38 +9,137 @@ export class JiraService {
     userPermissions: undefined,
     fields: undefined,
   };
+
+  /** Resolved Forge context, cached — but never one that arrived without an extension. */
+  private static contextCache: any = undefined;
+
+  /** Monotonic, so two flags raised in the same millisecond get distinct ids. */
+  private static flagCounter = 0;
+
+  /** The Connect `AP` surface on @forge/bridge — shaped exactly like it, so the 33 call sites are untouched. */
   static AP = {
-    // tslint:disable-next-line:no-unused-expression
+    /**
+     * Resolves to the PARSED body, as Connect's wrapper did, and REJECTS on a
+     * non-ok response so callers that rely on rejection keep working. The
+     * Connect wrapper it replaces neither resolved nor rejected when AP was
+     * missing — a silent hang; that behaviour is deliberately not ported.
+     *
+     * requestJira, not a resolver: issue edits and comments must be attributed
+     * to the user, and a resolver would attribute them to the app.
+     */
     request: async (...args: any): Promise<any> => {
-      const jiraAP = window['AP'];
-      return new Promise(async (resolve, reject): Promise<any> => {
-        if (jiraAP) {
-          try {
-            const resp = await jiraAP.request(...args);
-            resolve(resp.body ? JSON.parse(resp.body) : resp.body);
-          } catch (e) {
-            reject(e);
-          }
-        } else {
-          console.error('AP is not defined');
-        }
+      const options = typeof args[0] === 'string' ? { url: args[0] } : args[0] ?? {};
+      const response = await requestJira(options.url, {
+        method: (options.type || 'GET').toUpperCase(),
+        headers: { 'Content-Type': options.contentType || 'application/json' },
+        ...(options.data === undefined ? {} : { body: options.data }),
       });
+      const text = await response.text();
+      if (!response.ok) {
+        throw new Error(`Jira responded ${response.status}: ${(text || '').slice(0, 500)}`);
+      }
+      if (!text) {
+        return undefined;
+      }
+      try {
+        return JSON.parse(text);
+      } catch {
+        return text;
+      }
     },
-    context: window['AP'].context,
-    user: window['AP'].user,
-    jira: window['AP'].jira,
-    navigator: window['AP'].navigator,
-    flag: window['AP'].flag,
-    resize: window['AP'].resize,
-    events: window['AP'].events,
+
+    context: {
+      getContext: () => JiraService.getContext(),
+    },
+
+    flag: {
+      /**
+       * Connect's {title, body, type, close, actions} -> Forge's
+       * {id, title, description, type, isAutoDismiss, actions}, so the call site
+       * in showNotification is unchanged.
+       *
+       * Connect delivered clicks on a separate `AP.events.on('flag.action')`
+       * bus. @forge/bridge has no event bus, so the handler that bus fed lives
+       * here now, on each action's onClick. Connect's actions are a map of
+       * {actionIdentifier: label}; for this app the identifier is an issue key.
+       * router.open, not window.open — a Forge iframe cannot reliably open a
+       * window — and a product-relative path, because getParentDomain() reads
+       * AP._hostOrigin and cannot resolve the host from inside a Forge frame.
+       */
+      create: (options: { title?: string; body?: string; type?: string; close?: string; actions?: any }) => {
+        const appearance = ['info', 'success', 'warning', 'error'].includes(options?.type)
+          ? (options.type as 'info' | 'success' | 'warning' | 'error')
+          : 'info';
+        const actions = Object.entries(options?.actions ?? {}).map(([issueKey, label]) => ({
+          text: String(label),
+          onClick: () => void router.open(`/browse/${issueKey}`),
+        }));
+        return showFlag({
+          id: `aq-${Date.now()}-${JiraService.flagCounter++}`,
+          title: options?.title,
+          description: options?.body,
+          type: appearance,
+          // Explicit `close` wins; otherwise errors stay until dismissed.
+          isAutoDismiss: options?.close ? options.close !== 'manual' : appearance !== 'error',
+          ...(actions.length ? { actions } : {}),
+        });
+      },
+    },
+
+    navigator: {
+      /** Connect reloaded the host page; Forge refreshes the module in place, and not every view can. */
+      reload: async () => {
+        try {
+          await view.refresh();
+        } catch {
+          /* module cannot refresh; cosmetic, so swallow it */
+        }
+      },
+    },
+
+    // Gone, not stubbed: `resize` (Forge sizes the frame), `events` (no bus —
+    // see flag.create), `jira.showJQLEditor` (a later order ships a real editor).
   };
 
   static async request(data: any) {
     return await this.AP.request(data);
   }
 
-  static async getContext() {
-    return this.AP.context.getContext();
+  /**
+   * Forge's context, reshaped into the `{jira: {project, issue}}` form the app
+   * already reads (project.component and autocomplete.component both reach for
+   * `jiraContext.jira.project`).
+   */
+  static async getContext(): Promise<any> {
+    if (this.contextCache) {
+      return this.contextCache;
+    }
+    const context: any = await view.getContext();
+    const extension = context?.extension ?? {};
+    const adapted = {
+      ...context,
+      jira: {
+        project: extension.project ?? extension.jira?.project,
+        issue: extension.issue ?? extension.jira?.issue,
+      },
+    };
+    // NEVER cache a context without an extension. Angular calls this during
+    // bootstrap, before the bridge is necessarily connected, and caching that
+    // empty result poisons every later caller for the life of the page.
+    if (context?.extension) {
+      this.contextCache = adapted;
+    }
+    return adapted;
+  }
+
+  /** Which module the user opened. Drives the routing switch in app.component. */
+  static async getModuleKey(): Promise<{ moduleKey?: string; type?: string; projectId?: string }> {
+    const context: any = await this.getContext();
+    return {
+      moduleKey: context?.extension?.moduleKey ?? context?.moduleKey,
+      type: context?.extension?.type ?? context?.type,
+      projectId: context?.extension?.project?.id ?? context?.jira?.project?.id,
+    };
   }
 
   static isInJira() {
@@ -144,10 +244,6 @@ export class JiraService {
     }
   }
 
-  static openJQLEditor(options: any, callback: any) {
-    this.AP.jira.showJQLEditor(options, callback);
-  }
-
   static async checkIssuesAgainstJQLs(issueIds: any[], JQLs: string[]) {
     const JQLChunk = UtilsService.sliceIntoChunks(JQLs, 10);
     const allMatches = [];
@@ -161,10 +257,6 @@ export class JiraService {
       allMatches.push(...response.matches);
     }
     return allMatches;
-  }
-
-  static resize(width: any, height: any) {
-    this.AP.resize(width, height);
   }
 
   static async getApplicationProperties(property: string) {
@@ -492,6 +584,3 @@ export class JiraService {
   }
 }
 
-JiraService.AP.events.on('flag.action', (event: any) => {
-  window.open(UtilsService.getIssueUrl({ key: event.actionIdentifier }), '_blank');
-});

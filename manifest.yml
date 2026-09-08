@@ -1,20 +1,119 @@
-# advanced-queues
-modules: {}
+# Advanced Queues for Jira Service Management (Pro)
+#
+# Translated from src/assets/advanced-queues-pro-atlassian-connect.json in
+# advanced-queues-connect. Three Connect module types become two Forge modules;
+# see .migration/plan.md#module-map.
+
+modules:
+  # Connect: jiraProjectPages / advanced-queues-project.
+  #
+  # Connect put the route in the URL the descriptor declared
+  # (#/project/${project.id}/queues). Forge loads one bundle for every module
+  # and hands the app a context object instead, so that route is now selected in
+  # app.component.ts by moduleKey. Do not add a second resource per module.
+  jira:projectPage:
+    - key: advanced-queues-project
+      resource: main
+      resolver: { function: resolver }
+      title: Advanced Queues
+      # Connect declared iconUrl /assets/images/advanced-queues-dark.svg on this
+      # module. Without an icon Jira draws its generic app hexagon in the
+      # project sidebar. Forge takes one value with no light/dark variant, so
+      # the single SVG has to read on both themes.
+      icon: resource:main;assets/images/advanced-queues-dark.svg
+      layout: blank
+      # Connect's condition tree, 1:1. Two things differ from the descriptor's
+      # JSON and both are load-bearing:
+      #
+      #  1. Forge's `and`/`or` are MAPS, not lists, so a map cannot hold two
+      #     keys of the same name. This tree only needs one `or`, so it nests
+      #     directly; deeper trees need right-nested single-child wrappers.
+      #  2. An ABSENT project-admin-settings property means "never configured",
+      #     which Connect treated as ENABLED — hence the `not: entityPropertyExists`
+      #     branch. Dropping it would hide the app from every project that has
+      #     not opened the settings screen.
+      #
+      # entityPropertyEqualTo compares as a string, so `value: "true"` matches a
+      # stored boolean true (Trap 7). Component code must accept both forms.
+      displayConditions:
+        and:
+          isLoggedIn: true
+          or:
+            entityPropertyEqualTo:
+              entity: project
+              propertyKey: com.appbox.ai.advanced.queues_project-admin-settings
+              objectName: advancedQueuesEnabled
+              value: "true"
+            not:
+              entityPropertyExists:
+                entity: project
+                propertyKey: com.appbox.ai.advanced.queues_project-admin-settings
+
+  # Connect: webSections / advanced-queues-section (location
+  # admin_plugins_menu) holding adminPages / project-enablement.
+  #
+  # A Forge web section has no counterpart and needs none — admin pages nest
+  # themselves under Apps in Jira administration. Only ONE jira:adminPage entry
+  # is allowed without useAsConfig/useAsGetStarted, and one is all this app has.
+  jira:adminPage:
+    - key: project-enablement
+      resource: main
+      resolver: { function: resolver }
+      title: Advanced Queues
+      layout: blank
+
+  function:
+    - key: resolver
+      handler: index.handler
+
 resources:
   - key: main
     path: static/forge-angular-app/dist/advanced-queues
     tunnel:
       port: 4200
+
 app:
-  id: ari:cloud:ecosystem::app/REPLACE_WITH_APP_ARI
+  id: ari:cloud:ecosystem::app/d9c91408-9ee5-43a9-8336-4cec143708b9
   connect:
-    key: REPLACE_WITH_CONNECT_KEY  # must equal the descriptor's key, or this is a new install
+    # MUST equal the Connect descriptor's key. This is what makes an existing
+    # install an in-place upgrade rather than a brand new app. The `.free`
+    # listing has its own key and is out of scope (decisions.md 2).
+    key: com.appbox.ai.advanced.queues
   runtime:
     name: nodejs22.x
   licensing:
     enabled: true
+
 permissions:
-  scopes: []
+  scopes:
+    # Connect ceiling is READ, WRITE, DELETE — no PROJECT_ADMIN, no ADMIN.
+    # `manage:jira-project` is therefore unavailable: to unset a project
+    # setting, clear the field inside the property, never delete the property.
+    # Verified with check-scope-ceiling.mjs against the Pro descriptor.
+    - read:jira-work
+    - read:jira-user
+    - read:avatar:jira
+    - read:project.property:jira
+    - write:project.property:jira
+    # The only non-property write: PUT /rest/api/3/issue/{key}/assignee, behind
+    # the inline assignee picker in the queue grid.
+    - write:jira-work
+    # Per-user queue, folder and view preferences —
+    # GET/PUT /rest/api/3/user/properties. Advanced Queues is the first app of
+    # the four to store USER-scoped entity properties, so there is no in-house
+    # precedent for these two; they are the granular counterparts of the
+    # project.property pair above.
+    - read:user.property:jira
+    - write:user.property:jira
+    # Jira Service Management. One call:
+    # GET /rest/servicedeskapi/servicedesk/projectId:{id}/queue, behind the
+    # import-native-queues dialog. Connect's READ already covered the
+    # servicedeskapi surface; Forge names it separately, which is why
+    # check-scope-ceiling.mjs needed these rows added (plan R2).
+    - read:servicedesk:jira-service-management
+    - read:queue:jira-service-management
   content:
     styles: [unsafe-inline]
     scripts: [unsafe-eval]
+  # No permissions.external. Runs on Atlassian is the target, and a single
+  # declared egress — even a frame-src to our own domain — forfeits it (Trap 5).
