@@ -36,6 +36,15 @@
         <option *ngFor="let group of groups" [value]="group.id">{{ group.name }}</option>
       </select>
     </div>
+    <!-- Native queues are a Jira Service Management feature, but the picker
+         above lists every project the user can see. Saying so beats an empty
+         list, which reads as "this project has no queues". -->
+    <div class="col-12 mb-3" *ngIf="noServiceDeskForProject">
+      <p class="text-muted mb-0">
+        This project has no service desk, so there are no native queues to import.
+        Native queue import is only available in Jira Service Management projects.
+      </p>
+    </div>
     <div class="col-12 mb-3" *ngIf="currentProjectQueues">
       <p>
         Please select the queues, you want to import

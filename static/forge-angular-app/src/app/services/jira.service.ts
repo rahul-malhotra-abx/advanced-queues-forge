@@ -496,12 +496,34 @@ export class JiraService {
     }
   }
 
+  /**
+   * Native JSM queues for a project. Returns `undefined` when the project has
+   * no service desk.
+   *
+   * This is the only Jira Service Management endpoint the app calls, and it is
+   * reachable for projects that are not service projects at all: the Connect
+   * descriptor declared no JSM condition, so the project page renders on every
+   * project type, and the import dialog lets the user pick any project from a
+   * list. A software or business project arriving here is therefore ordinary,
+   * not exceptional — it was the one unguarded request in this file, and it
+   * threw rather than returning nothing.
+   *
+   * Guarded rather than gated: adding a JSM condition to the module would hide
+   * the app from any non-JSM project a customer has enabled today, which is a
+   * silent feature removal on upgrade. Degrading this one feature is the
+   * smaller change.
+   */
   static async getProjectQueues(projectIdOrKey: string) {
-    return await this.AP.request({
-      url: `/rest/servicedeskapi/servicedesk/projectId:${projectIdOrKey}/queue`,
-      type: 'GET',
-      contentType: 'application/json',
-    });
+    try {
+      return await this.AP.request({
+        url: `/rest/servicedeskapi/servicedesk/projectId:${projectIdOrKey}/queue`,
+        type: 'GET',
+        contentType: 'application/json',
+      });
+    } catch (error) {
+      console.warn(`No service desk for project ${projectIdOrKey}; it is probably not a service project.`, error);
+      return undefined;
+    }
   }
 
   static async executeJQL(jql: string, maxResults: number, properties?: string[], fields?: string[], expand?: string): Promise<any[]> {
