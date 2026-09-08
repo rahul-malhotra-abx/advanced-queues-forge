@@ -5,6 +5,60 @@
 Phase 5 (iframe pass) is next and needs a real install.
 **Updated:** 2026-09-07
 
+## Post-audit decisions — all taken and shipped (v3.1.0)
+
+Answered by the product owner 2026-09-07, implemented in `forge/07-audit-fixes`
+([PR #7](https://github.com/rahul-malhotra-abx/advanced-queues-forge/pull/7)).
+
+| Question | Decision |
+| --- | --- |
+| Licensing | **Add it**, RR/BPN pattern. Forge is the only version, so the licence check is the whole gate |
+| `read:avatar:jira` | **Removed** — no call site |
+| Font | **Jira's stack**, not a self-hosted Roboto |
+| Non-JSM projects | **Guard the call**, do not gate the module |
+| Ctrl/Cmd-click | **New tab**; plain click opens the issue modal |
+| `StorageService.save()` | **Report failures** instead of swallowing them |
+
+Notes worth keeping:
+
+- `ALLOW_UNLICENSED` was `true` in the Pro environment, which is *why* nothing
+  gated. Flipped to `false`. The check fails **open** on error so a throw never
+  locks out a paying customer, and a missing licence object off production still
+  counts as licensed — otherwise every dev install looks broken.
+- Ctrl/Cmd-click uses `router.open`, not a real `href` + `target="_blank"`:
+  native modified-click is not dependable in a sandboxed Forge iframe, and an
+  absolute URL would need `getParentDomain()`, which cannot resolve the host from
+  inside a Forge frame. Still a **single** path — the renderer has no handler of
+  its own, which is what made closed PR #9 fire twice.
+- Non-JSM was **guarded, not gated**, deliberately: a JSM display condition would
+  hide the app from any non-JSM project a customer has enabled today, which is a
+  silent feature removal on upgrade. Two adjacent crashes fixed with it —
+  `clickOk()` called `.filter()` on an undefined list both before a project is
+  chosen and when the chosen one has no service desk.
+
+### QA impact — correcting an earlier number
+
+Earlier notes said **4** QA cases reference the JQL Builder. That was a count of
+matching *lines*; three of them belong to one case. It is **2 cases**:
+
+- **AQ-EDIT-12** — entirely about the builder dialog. Rewritten end to end
+  against the inline CodeMirror field.
+- **AQ-EDIT-01** — a field inventory listing `with 'Use JQL Builder'`. One clause
+  deleted.
+
+Two more need re-verification without being behavioural changes: **AQ-EDIT-04**
+(JQL required — same rule, different control, so selector-based automation
+breaks) and **AQ-EDIT-13** (Saved Filters — unchanged behaviour, now routed
+through `setJql()` so document and model cannot drift).
+
+### Confirmed on a real install
+
+The user's screenshot of the project page on `JSMPROJ` shows the grid bounded and
+paginating correctly (464 issues, 47 pages), the queue rail rendering, and the
+inline assignee picker working. **The `100vh` clamp concern from Phase 5 looks
+unfounded in practice** — the grid is not deadlocking the auto-resizer. Leave the
+clamps alone unless a specific surface misbehaves.
+
 ## Phase 7 — audit done. FOUR claims broken. Do not submit yet.
 
 Full report: [`findings/04-audit.md`](findings/04-audit.md). Verdicts: C1 partly
