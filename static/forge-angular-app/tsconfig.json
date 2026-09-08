@@ -4,6 +4,9 @@
   "compilerOptions": {
     "baseUrl": "./",
     "outDir": "./dist/out-tsc",
+    // @forge/bridge's typings `import type` from '@forge/resolver/shared', a
+    // server-side package the UI does not install. Matches the sibling ports.
+    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "noImplicitReturns": true,
