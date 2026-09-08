@@ -5,6 +5,33 @@
 Phase 5 (iframe pass) is next and needs a real install.
 **Updated:** 2026-09-07
 
+## Branch and PR structure
+
+Phases are **stacked PRs**, one per logical unit, on `rahul-malhotra-abx/advanced-queues-forge`:
+
+| Branch | PR | Contents |
+| --- | --- | --- |
+| `main` | — | empty root commit, so every phase is reviewable |
+| `forge/01-scaffold` | *pending* | scaffold, dashboards drop, PRO pin, Trap 13, `.angular` ignore |
+| `forge/02-manifest` | [#1](https://github.com/rahul-malhotra-abx/advanced-queues-forge/pull/1) | manifest, modules, conditions, scopes |
+| `forge/03-bridge` | [#2](https://github.com/rahul-malhotra-abx/advanced-queues-forge/pull/2) | `@forge/bridge` shim, routing |
+| `forge/04-port` | [#3](https://github.com/rahul-malhotra-abx/advanced-queues-forge/pull/3) | component call sites, Connect leftovers |
+| `forge/05-iframe` | [#4](https://github.com/rahul-malhotra-abx/advanced-queues-forge/pull/4) | ag-Grid font; rest of the iframe pass pending |
+
+**`forge/01-scaffold` has no PR yet** because `origin/main` still holds the
+superseded history that carried the 97 MB build cache, so there is no valid base
+to open it against. One force-push fixes it, and it must happen before that PR
+can exist:
+
+```bash
+git push --force-with-lease origin main   # local main is the empty root
+```
+
+The four pushed branches are unaffected by it — they were built with
+`reset --soft`, not rebase, and the final tree is byte-identical to the
+pre-restructure state (verified with `git diff backup-pre-restructure`).
+`backup-pre-restructure` is kept locally until the stack is merged.
+
 ## Runs on Atlassian — eligible, confirmed
 
 `manifest.yml` declares **no `permissions.external`**, which is what decides it
