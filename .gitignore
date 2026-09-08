@@ -1,0 +1,8 @@
+node_modules/
+static/forge-angular-app/dist/
+static/forge-angular-app/node_modules/
+# Angular's build cache. Angular 12+ writes it on every build, it reaches ~97 MB
+# for this app, and a single pack file exceeds GitHub's 50 MB warning threshold.
+.angular/
+.DS_Store
+.env

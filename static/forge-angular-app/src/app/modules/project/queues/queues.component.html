@@ -1,0 +1,208 @@
+<div class="d-flex queues-container">
+  <div class="queue-list-container" *ngIf="!queueListHidden && pageLoaded">
+    <div class="d-flex queue-list-actions">
+      <i class="fa fa-plus p-2 my-auto cursor-pointer" ngbTooltip="Add new queue in: [{{ currentFolder?.name }}]" (click)="addEditQueue()"></i>
+      <i
+        *ngIf="currentQueue"
+        class="fa fa-pencil-alt p-2 my-auto cursor-pointer"
+        ngbTooltip="Edit queue: [{{ currentQueue.name }}]"
+        [ngClass]="{ disabled: currentQueue.scope === QueueScopes.PROJECT && !isAdmin }"
+        (click)="addEditQueue(currentQueue)"></i>
+      <i
+        *ngIf="currentQueue"
+        class="far fa-copy p-2 my-auto cursor-pointer"
+        ngbTooltip="Clone queue: [{{ currentQueue.name }}]"
+        (click)="cloneCurrentQueue()"></i>
+      <span class="ms-auto my-auto cursor-pointer text-dark" [matMenuTriggerFor]="additionalMenu"><i class="fa fa-ellipsis-h"></i></span>
+      <mat-menu class="queue-additional-menu" #additionalMenu="matMenu" xPosition="before">
+        <a class="nav-link text-dark" (click)="importQueues()">
+          <i class="fa fa-download"></i>
+          Import Queue
+        </a>
+        <a class="nav-link text-dark" (click)="editQueueList()">
+          <i class="fa fa-list"></i>
+          Edit Queue List View
+        </a>
+        <a class="nav-link text-dark" (click)="editFolders()">
+          <i class="fa fa-layer-group"></i>
+          Edit Folders
+        </a>
+        <a class="nav-link text-dark" (click)="editQueues()">
+          <i class="fa fa-pencil-alt"></i>
+          Edit Queues (Bulk)
+        </a>
+      </mat-menu>
+    </div>
+    <div class="queue-list">
+      <div class="d-flex" *ngIf="projectQueues?.length > 0">
+        <input class="form-control ms-1 me-3 my-2" placeholder="Search Queues" [(ngModel)]="searchFilter.name" />
+        <div class="my-auto">
+          <span class="ms-auto my-auto cursor-pointer text-dark" ngbTooltip="Sort Queues" [matMenuTriggerFor]="sortMenu">
+            <i class="fa fa-sort"></i>
+          </span>
+          <mat-menu class="queue-additional-menu" #sortMenu="matMenu" xPosition="before">
+            <a
+              class="nav-link text-dark"
+              *ngFor="let sorting of availableSortingOptions"
+              (click)="setQueueSorting(sorting.sortBy, sorting.sortOrder)">
+              <i class="fa" [ngClass]="sorting.sortOrder === 'ASC' ? 'fa-arrow-up-long' : 'fa-arrow-down-long'"></i>
+              {{ sorting.label }}
+              <i
+                class="fa fa-check text-success ms-2"
+                *ngIf="queueSorting.sortBy === sorting.sortBy && queueSorting.sortOrder === sorting.sortOrder"></i>
+            </a>
+          </mat-menu>
+        </div>
+      </div>
+      <ng-container *ngFor="let folder of myProjectAndPersonalFolders; let folderIndex = index">
+        <div
+          class="accordion mt-2"
+          id="folder-{{ folder.id }}-container"
+          *ngIf="(mySortedProjectQueues[folder.id] | filterBy : searchFilter)?.length > 0">
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="folder-{{ folder.id }}-heading">
+              <button
+                class="accordion-button"
+                [ngClass]="{ collapsed: folder.collapsed || searchFilter.name !== '' }"
+                type="button"
+                data-bs-toggle="collapse"
+                attr.data-bs-target="#folder-{{ folder.id }}"
+                aria-expanded="true"
+                attr.aria-controls="folder-{{ folder.id }}"
+                (click)="toggleFolderCollapse(folder)">
+                {{ folder.name }}
+              </button>
+            </h2>
+            <div
+              id="folder-{{ folder.id }}"
+              class="accordion-collapse collapse"
+              [ngClass]="{ show: !folder.collapsed || searchFilter.name !== '' }"
+              attr.aria-labelledby="folder-{{ folder.id }}-heading"
+              attr.data-bs-parent="#folder-{{ folder.id }}-container">
+              <div class="accordion-body">
+                <ul class="list-group" cdkDropList (cdkDropListDropped)="onQueueDrop($event, folderIndex)">
+                  <ng-container *ngFor="let queue of mySortedProjectQueues[folder.id] | filterBy : searchFilter">
+                    <li
+                      class="list-group-item"
+                      cdkDrag
+                      cdkDragLockAxis="y"
+                      [ngClass]="{ active: folder.name === currentFolder.name && queue.id === currentQueue?.id }">
+                      <div class="d-flex">
+                        <span [ngbTooltip]="queueSorting.sortBy === 'USER_SORT' ? 'Drag to reorder' : 'To Sort Queues, Please change to User Sort'">
+                          <i
+                            class="bi bi-grip-vertical me-1"
+                            cdkDragHandle
+                            [ngClass]="{ disabled: queueSorting.sortBy !== 'USER_SORT' }"
+                            *ngIf="queueListConfig.show.order"></i>
+                        </span>
+                        <i
+                          ngbTooltip="Priority: {{ queue.priority }}"
+                          *ngIf="queueListConfig.show.queuePriority"
+                          class="me-2 Priority-{{ queue.priority }} {{ UtilsService.getPriorityIcon(queue.priority) }} pt-1"></i>
+                        <i
+                          class="text-black-35 far me-2 my-auto"
+                          *ngIf="queueListConfig.show.queueScope"
+                          [ngClass]="queue.scope === QueueScopes.PROJECT ? 'fa-folder-open' : 'fa-user'"></i>
+                        <a class="cursor-pointer text-decoration-none text-dark ms-1 w-100" (click)="loadQueue(folder, queue)">{{ queue.name }}</a>
+                        <span class="ms-auto badge rounded-pill bg-light text-dark" *ngIf="queueListConfig.show.issueCount">
+                          {{ queue.lastRefreshedData?.count }}
+                        </span>
+                      </div>
+                      <div class="d-flex ms-1 mt-1 justify-content-between">
+                        <div
+                          class="text-black-35"
+                          *ngIf="queueListConfig.show.lastIssueCreateTime && queue.lastRefreshedData?.lastCreated"
+                          ngbTooltip="Last issue created in this queue {{ timeFormat(queue.lastRefreshedData?.lastCreated.fields.created) }}">
+                          {{ timeFormat(queue.lastRefreshedData?.lastCreated.fields.created) }}
+                        </div>
+                        <div
+                          class="text-black-35"
+                          *ngIf="queueListConfig.show.lastIssueUpdateTime && queue.lastRefreshedData?.lastUpdated"
+                          ngbTooltip="Last issue updated in this queue {{ timeFormat(queue.lastRefreshedData?.lastUpdated.fields.updated) }}">
+                          {{ timeFormat(queue.lastRefreshedData?.lastUpdated.fields.updated) }}
+                        </div>
+                      </div>
+                      <div class="text-black-35 mt-1 ms-1" *ngIf="queueListConfig.show.description">
+                        {{ queue.description }}
+                      </div>
+                    </li>
+                  </ng-container>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+      <div *ngIf="myProjectAndPersonalQueues.length === 0">
+        <div class="text-center text-muted p-3">No queues configured</div>
+        <div class="d-flex justify-content-center">
+          <button class="btn btn-primary me-3" (click)="addEditQueue()">
+            <i class="fa fa-plus"></i>
+            Add New
+          </button>
+          <button class="btn btn-outline-primary" (click)="importQueues()">
+            <i class="fa fa-download"></i>
+            Import
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    class="queue-grid-container"
+    [ngClass]="{ 'queue-list-hidden': queueListHidden, 'alert-visible': currentQueue && currentQueue.alert }"
+    *ngIf="currentQueue && pageLoaded">
+    <div class="d-flex">
+      <h3 class="px-3">
+        <i
+          class="bi bi-list me-3 cursor-pointer"
+          [ngbTooltip]="(queueListHidden ? 'Show' : 'Hide') + ' Queue List'"
+          (click)="toggleQueueListVisibility()"></i>
+        {{ currentQueue.name }}
+        <i class="bi bi-info-circle fs-6 align-middle" *ngIf="currentQueue.description" [ngbTooltip]="currentQueue.description"></i>
+      </h3>
+      <div class="ms-auto pe-3">
+        <a
+          class="btn btn-link text-decoration-none me-3"
+          target="_blank"
+          [href]="UtilsService.getParentDomain() + '/issues/?jql=' + currentQueue.jql">
+          View in issue navigator
+        </a>
+        <span class="ms-auto my-auto cursor-pointer text-dark" [matMenuTriggerFor]="additionalQueueMenu">
+          <i ngbTooltip="Queue actions" class="fa fa-ellipsis-h"></i>
+        </span>
+        <mat-menu class="queue-additional-menu" #additionalQueueMenu="matMenu" xPosition="before">
+          <a class="nav-link text-dark" (click)="addEditQueue(currentQueue)">
+            <i class="fa fa-pencil-alt"></i>
+            Edit Queue
+          </a>
+          <a class="nav-link text-dark" (click)="cloneCurrentQueue()">
+            <i class="far fa-copy"></i>
+            Clone Queue
+          </a>
+          <a class="nav-link text-dark" (click)="deleteCurrentQueue()">
+            <i class="fa fa-trash-alt text-danger"></i>
+            Delete Queue
+          </a>
+        </mat-menu>
+      </div>
+    </div>
+    <div class="alert alert-{{ currentQueue.alertLevel || 'primary' }} p-2 mb-0" *ngIf="currentQueue && currentQueue.alert">
+      <markdown [data]="currentQueue.alert"></markdown>
+    </div>
+    <div class="" *ngIf="!currentQueue">
+      <h4 class="text-center">No queue selected</h4>
+    </div>
+    <div class="grid-container">
+      <app-grid
+        *ngIf="currentQueue && myProjectQueuesView.queueGridConfig"
+        [queue]="currentQueue"
+        [queueGridOptions]="myProjectQueuesView.queueGridConfig[currentQueue.id].gridOptions"
+        [allColumns]="jiraFields"
+        (myQueuesViewChanged)="myQueuesViewChanged($event)"></app-grid>
+    </div>
+  </div>
+  <div class="queue-grid-container" [ngClass]="{ 'queue-list-hidden': queueListHidden }" *ngIf="!currentQueue && pageLoaded">
+    <div class="text-center text-muted p-3">No queues configured</div>
+  </div>
+</div>

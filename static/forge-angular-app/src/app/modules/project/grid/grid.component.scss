@@ -1,0 +1,71 @@
+@import '~ag-grid-community/dist/styles/ag-grid.css';
+@import '~ag-grid-community/dist/styles/ag-theme-balham.min.css';
+
+.prioritization-grid {
+  height: calc(100vh - 141px) !important;
+}
+
+.alert-visible {
+  .prioritization-grid {
+    height: calc(100vh - 141px - 40px) !important;
+  }
+}
+
+.ag-theme-balham {
+  .ag-root-wrapper {
+    border: none;
+  }
+
+  .ag-header {
+    background-color: #ffffff;
+
+    .ag-floating-filter-input {
+      .ag-input-field-input {
+        border: 1px solid #d8d8d8 !important;
+      }
+    }
+  }
+
+  .ag-header-cell-text {
+    color: #333333;
+  }
+
+  .ag-body-viewport {
+    background: #0052cc06;
+    border: 1px solid #ccc;
+    border-top: 0;
+    border-bottom: 0;
+  }
+
+  .ag-cell-wrap-text {
+    word-break: break-word;
+  }
+}
+
+.jira-issue-status {
+  font-weight: 500;
+
+  .blue-gray {
+    padding: 1px 5px 3px;
+    border-radius: 5px;
+    background-color: #ebecf0;
+    border-color: #ebecf0;
+    color: #42526e;
+  }
+
+  .yellow {
+    padding: 1px 5px 3px;
+    border-radius: 5px;
+    background-color: #deebff;
+    border-color: #deebff;
+    color: #0049b0;
+  }
+
+  .green {
+    padding: 1px 5px 3px;
+    border-radius: 5px;
+    background-color: #e3fcef;
+    border-color: #e3fcef;
+    color: #006644;
+  }
+}

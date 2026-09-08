@@ -1,0 +1,50 @@
+<h1 mat-dialog-title>
+  <i class="fa fa-pencil-alt text-black-50"></i>
+  &nbsp; Edit Queue List View
+</h1>
+<div mat-dialog-content class="pb-2">
+  <div class="">
+    <div class="form-check form-switch">
+      <input class="form-check-input me-2" type="checkbox" id="order" [(ngModel)]="queueListConfig.show.order" [value]="true" />
+      <label class="form-check-label" for="order">Allow Queue Ordering</label>
+    </div>
+    <div class="form-check form-switch">
+      <input class="form-check-input me-2" type="checkbox" id="priority" [(ngModel)]="queueListConfig.show.queuePriority" [value]="true" />
+      <label class="form-check-label" for="priority">Show Queue Priority</label>
+    </div>
+    <div class="form-check form-switch">
+      <input class="form-check-input me-2" type="checkbox" id="issueCount" [(ngModel)]="queueListConfig.show.issueCount" [value]="true" />
+      <label class="form-check-label" for="issueCount">Show Issue Count</label>
+    </div>
+    <div class="form-check form-switch">
+      <input
+        class="form-check-input me-2"
+        type="checkbox"
+        id="lastIssueCreateTime"
+        [(ngModel)]="queueListConfig.show.lastIssueCreateTime"
+        [value]="true" />
+      <label class="form-check-label" for="lastIssueCreateTime">Show Last Issue Create Time</label>
+    </div>
+    <div class="form-check form-switch">
+      <input
+        class="form-check-input me-2"
+        type="checkbox"
+        id="lastIssueCreateTime"
+        [(ngModel)]="queueListConfig.show.lastIssueUpdateTime"
+        [value]="true" />
+      <label class="form-check-label" for="lastIssueCreateTime">Show Last Issue Update Time</label>
+    </div>
+    <div class="form-check form-switch">
+      <input class="form-check-input me-2" type="checkbox" id="description" [(ngModel)]="queueListConfig.show.description" [value]="true" />
+      <label class="form-check-label" for="description">Show Queue Description</label>
+    </div>
+    <div class="form-check form-switch">
+      <input class="form-check-input me-2" type="checkbox" id="queueScope" [(ngModel)]="queueListConfig.show.queueScope" [value]="true" />
+      <label class="form-check-label" for="queueScope">Show Queue Scope</label>
+    </div>
+  </div>
+</div>
+<div mat-dialog-actions class="clearfix float-end">
+  <button class="btn btn-link text-dark text-decoration-none me-2" (click)="cancelEditing()">Cancel</button>
+  <button class="btn btn-primary" (click)="clickOk()">OK</button>
+</div>

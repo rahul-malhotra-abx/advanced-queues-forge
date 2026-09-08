@@ -1,0 +1,98 @@
+.queues-container {
+  height: calc(100vh - 45px);
+}
+
+.queue-list-container {
+  width: 275px;
+  min-width: 275px;
+  background: #fafbfc;
+  border-right: 1px solid #e4e5e6;
+  padding: 10px;
+
+  .queue-list-actions {
+    padding: 0 10px 10px;
+    border-bottom: 1px solid #e4e5e6;
+
+    i {
+      &:hover {
+        background: #ebecf0;
+        border-radius: 5px;
+      }
+    }
+  }
+
+  .queue-list {
+    height: calc(100vh - 170px);
+    overflow: auto;
+
+    i {
+      width: 15px;
+      text-align: left;
+    }
+
+    .list-group-item {
+      background: transparent !important;
+      border-width: 0 0 1px 0;
+      border-radius: 0;
+
+      &.active {
+        margin-top: 0;
+
+        &::before {
+          content: '';
+          position: absolute;
+          height: calc(100% - 12px);
+          width: 4px;
+          left: 0;
+          top: 6px;
+          background: #0052cc;
+          border-radius: 0 1.998px 1.998px 0;
+        }
+
+        border-bottom: 1px solid #00000020;
+      }
+    }
+  }
+}
+
+.queue-grid-container {
+  width: calc(100% - 275px);
+  min-width: 500px;
+  padding: 10px 10px 0 10px;
+  height: calc(100vh - 40px);
+  overflow: auto;
+
+  &.queue-list-hidden {
+    width: 100%;
+  }
+}
+
+.accordion-item {
+  background-color: transparent;
+  border: none;
+
+  .accordion-button {
+    background-color: #ebecf0;
+    border-radius: 5px;
+
+    &:focus {
+      box-shadow: none;
+    }
+  }
+
+  .accordion-body {
+    padding: 0;
+  }
+}
+
+.nav-link {
+  cursor: pointer;
+
+  &:hover {
+    background: #ebecf0;
+  }
+
+  i {
+    width: 20px;
+  }
+}

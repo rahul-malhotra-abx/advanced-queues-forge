@@ -1,0 +1,56 @@
+<div class="p-5 pt-4">
+  <h3>Advanced Queues - Project Enablement</h3>
+
+  <div class="p-3" *ngIf="!pageLoaded">
+    <div class="page-loader-wrapper ms-1">
+      <div class="page-loader"></div>
+      <i class="fa fa-sort-amount-up page-loader-icon"></i>
+      <div class="page-loader-text">Loading Projects...</div>
+    </div>
+  </div>
+  <div class="p-3" *ngIf="pageLoaded">
+    <div class="ribbon">
+      <div class="search">
+        <input type="text" name="search" autocomplete="off" [(ngModel)]="searchFilter.name" placeholder="Search Name."
+               class="form-control"/>
+      </div>
+    </div>
+    <table class="table table-hover">
+      <colgroup>
+        <col width="auto"/>
+        <col width="200"/>
+        <col width="125"/>
+      </colgroup>
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Lead</th>
+        <th>Status</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let project of projects | filterBy: searchFilter; let $index = index;">
+        <td>
+          <img [ngbTooltip]="project.key" [src]="project.avatarUrls['24x24']" width="20"/> &nbsp; {{project.name}}
+        </td>
+        <td>
+          <img [src]="project.lead.avatarUrls['24x24']" width="20"/> &nbsp;
+          <a [href]="UtilService.getParentDomain() + '/people/' + project.lead.accountId"
+             target="_blank">{{project.lead.displayName}}</a>
+        </td>
+        <td>
+          <input type="checkbox" class="form-check-inline cursor-pointer me-1" (change)="updateStatus($index)"
+                 [(ngModel)]="project.adminSettings.advancedQueuesEnabled" [id]="'rt-enabled-' + $index"/>
+          <label class="ms-1 fw-normal cursor-pointer"
+                 [for]="'rt-enabled-' + $index">{{project.adminSettings.advancedQueuesEnabled ? 'Enabled' : 'Disabled'}}</label>
+        </td>
+      </tr>
+      <tr *ngIf="(projects | filterBy: searchFilter)?.length === 0">
+        <td colspan="6" class="text-center">
+          No projects
+        </td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

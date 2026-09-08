@@ -1,0 +1,20 @@
+# advanced-queues
+modules: {}
+resources:
+  - key: main
+    path: static/forge-angular-app/dist/advanced-queues
+    tunnel:
+      port: 4200
+app:
+  id: ari:cloud:ecosystem::app/REPLACE_WITH_APP_ARI
+  connect:
+    key: REPLACE_WITH_CONNECT_KEY  # must equal the descriptor's key, or this is a new install
+  runtime:
+    name: nodejs22.x
+  licensing:
+    enabled: true
+permissions:
+  scopes: []
+  content:
+    styles: [unsafe-inline]
+    scripts: [unsafe-eval]
