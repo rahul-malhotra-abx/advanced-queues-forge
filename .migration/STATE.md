@@ -227,9 +227,45 @@ them and still shipped a 40px strip. These need a real install and eyes.
    `extension.moduleKey ?? moduleKey`. Both are `??` chains so they differ only
    if a context carries both. Confirm against a real context via `forge logs`.
 
-## The Forge QA suite does not exist yet — DEFERRED by the user 2026-09-07
+## The Forge QA suite — BLOCKED on the Connect QA finishing
 
-Agreed to record and build later. Nothing to do now; this is the shape of it.
+**Sequencing decided by the user 2026-09-07: finish the Connect QA first, then
+write the Forge cases.** Do not start the Forge suite before that. Nothing to do
+now; this section is the shape of it when the time comes.
+
+### Where the Connect QA actually is
+
+`advanced-queues-connect-qa`, branch `qa/05-list`. **170 manual cases across 13
+areas are written**; the automation is roughly half done — one `qa/NN-topic`
+branch per area, per the stacked-PR convention.
+
+| Automated | Remaining |
+| --- | --- |
+| Folders (16), Queues (25 of 28), Queue Editor (22 of 23), Queue List (16) | Project Enablement (13), Project Page (7), Grid (18), Columns (16), Import Queues (10), Dashboards (2), Settings (4), Permissions (9), Persistence (8) |
+
+Roughly **87 cases across 8 areas** left to automate. Three of the 170 are
+permanently unrunnable — the feature is in the checkout, absent from the served
+`1.1.4-AC` chunks, and Connect is frozen.
+
+### One gap in the Connect suite that this migration found
+
+**No case covers [issue #12](https://github.com/appbox-ai/advanced-queues/issues/12).**
+`AQ-PERM-09` is the closest — "a project admin counts as admin" — but it uses a
+project admin **on AQ**, which is correct behaviour and passes. The bug needs the
+opposite setup: a user who administers an **unrelated** project and no part of
+AQ. On Connect that user currently reads as an admin on AQ's queue page; on the
+Forge port they do not.
+
+Worth adding to the Connect suite while the Permissions area is still being
+automated, as a `test.fail()` against Connect. `AQ-PERM-02`, `-03` and `-04` are
+already flagged as "the gate does not actually gate", so this belongs to a family
+the suite has already identified — it is the same defect one level deeper: not
+just cosmetic UI gating, but a permission lookup that asks the wrong question.
+
+### Carry-over note when the Forge suite is written
+
+The **Dashboards area (2 cases) is void for Forge** — the tree is deleted. Those
+cases stay valid for Connect and simply have no Forge counterpart.
 
 ### Do not edit the Connect suite
 
