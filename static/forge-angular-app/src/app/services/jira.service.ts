@@ -505,10 +505,34 @@ export class JiraService {
     return allIssues;
   }
 
+  /**
+   * Permissions for the CURRENT project. The project scope is not optional.
+   *
+   * `/rest/api/3/mypermissions` without a project answers "does this user hold
+   * the permission in AT LEAST ONE project". Every caller here asks about
+   * ADMINISTER_PROJECTS to decide whether to unlock the shared queue and folder
+   * editors — so unscoped, a user who administers one unrelated project reads as
+   * an admin on every project in the site. Jira then refuses the property write,
+   * and because the save path does not await, the 403 is swallowed and the edit
+   * silently vanishes.
+   *
+   * The project id is resolved here rather than threaded through the five
+   * callers: they all render inside the project page, so the Forge context
+   * already knows which project, and one resolution point cannot drift.
+   *
+   * Fails CLOSED. No project id means no answer, and `hasOneOfPermission`
+   * treats a missing answer as "no permission".
+   */
   static async getUserPermissions(permissions: string[]) {
     try {
+      const context = await this.getContext();
+      const projectId = context?.jira?.project?.id;
+      if (!projectId) {
+        console.warn('No project in context; refusing to evaluate project permissions unscoped.');
+        return undefined;
+      }
       const userPermissions = await this.AP.request({
-        url: `/rest/api/3/mypermissions?permissions=${permissions.join(',')}`,
+        url: `/rest/api/3/mypermissions?projectId=${encodeURIComponent(projectId)}&permissions=${permissions.join(',')}`,
         type: 'GET',
         contentType: 'application/json',
       });

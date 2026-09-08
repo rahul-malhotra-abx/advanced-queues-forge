@@ -5,6 +5,13 @@ import { QueuePriorityOrder } from '../models/default.queue.model';
 
 export class UtilsService {
   static hasOneOfPermission(requestedPermissions: string[], userPermissions: any) {
+    // Fail closed. getUserPermissions returns undefined when the request fails
+    // or when there is no project to scope it to; without this guard that threw
+    // a TypeError instead of denying, and an exception during ngOnInit leaves
+    // the component half-initialised rather than simply read-only.
+    if (!userPermissions?.permissions) {
+      return false;
+    }
     for (const [permissionKey, permission] of Object.entries(userPermissions.permissions)) {
       if (requestedPermissions.indexOf(permissionKey) > -1 && permission['havePermission']) {
         return true;
