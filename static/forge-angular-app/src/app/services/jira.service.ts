@@ -234,7 +234,13 @@ export class JiraService {
       return {
         accountId: '',
         active: true,
-        avatarUrls: { '24x24': '/assets/images/system-icon.png' },
+        // Relative, not '/assets/…': a Forge app is served from a path on the
+        // CDN, so a leading slash escapes the app's scope (Trap 14).
+        // NOTE: system-icon.png does not exist in assets/images and never did,
+        // so this fallback avatar was already a broken image under Connect.
+        // Left as a dead reference rather than silently substituting an icon —
+        // that is a product decision, not a port decision.
+        avatarUrls: { '24x24': 'assets/images/system-icon.png' },
         displayName: 'System',
         emailAddress: '',
         key: '',

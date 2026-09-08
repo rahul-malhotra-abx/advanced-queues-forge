@@ -10,6 +10,8 @@ import {
   SimpleChanges,
   ViewEncapsulation,
 } from '@angular/core';
+import { router } from '@forge/bridge';
+import { ViewIssueModal } from '@forge/jira-bridge';
 import { GridService } from '../../../services/grid.service';
 import { JiraService } from '../../../services/jira.service';
 import { UtilsService } from '../../../services/utils.service';
@@ -154,20 +156,29 @@ export class GridComponent implements OnInit, OnChanges, OnDestroy {
     this.persistQueueViewSettings();
   }
 
+  /**
+   * The ONLY path to the issue dialog. jira-issue-key-renderer's anchor is
+   * `href="javascript:void(0)"` on purpose so that ag-Grid's cell click is the
+   * single trigger — a second handler on the anchor opens the modal twice.
+   *
+   * Connect's openIssueDialog took a close callback; here it was empty, so the
+   * modal is opened with no onClose and nothing is refreshed on dismissal.
+   */
   async onCellClicked(selected: any) {
-    if (selected.column.colId == "key") {
-      if (selected.event) {
-        selected.event.preventDefault();
-        selected.event.stopPropagation();
-      }
-      window['AP'].jira.openIssueDialog(
-        selected.value,
-        function () {
-          // alert('Closed!');
-        }
-      );
+    if (selected.column.colId !== 'key') {
+      return;
     }
-
+    if (selected.event) {
+      selected.event.preventDefault();
+      selected.event.stopPropagation();
+    }
+    try {
+      await new ViewIssueModal({ context: { issueKey: selected.value } }).open();
+    } catch (error) {
+      // preventDefault() has already cancelled the anchor, so without this the click does nothing.
+      console.warn('ViewIssueModal unavailable; opening the issue in a new tab instead.', error);
+      router.open(`/browse/${selected.value}`);
+    }
   }
 
   persistQueueViewSettings() {

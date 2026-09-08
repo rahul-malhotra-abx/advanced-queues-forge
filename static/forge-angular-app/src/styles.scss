@@ -1,4 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;1,700&display=swap');
+// The Google Fonts @import that was here is removed: Forge's CSP blocks
+// fonts.googleapis.com, so it fetched nothing. `font-family: 'Roboto',
+// sans-serif` below is left intact and now resolves to the fallback.
+// Restoring Roboto means self-hosting the woff2 as an app asset; adopting
+// Jira's own font stack is the other option. Product call, not a port call.
 
 :focus {
   outline: none !important;

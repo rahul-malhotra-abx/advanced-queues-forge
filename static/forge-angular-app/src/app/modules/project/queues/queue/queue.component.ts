@@ -1,5 +1,8 @@
-import { ChangeDetectorRef, Component, Inject, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, Inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { EditorView } from '@codemirror/view';
+import { createJqlEditor } from '../../../../services/jql-codemirror';
+import { JqlAutocompleteService } from '../../../../services/jql-autocomplete.service';
 import { UtilsService } from '../../../../services/utils.service';
 import { DEFAULT_LIMITS } from '../../../../models/default.limits';
 import { JiraService } from '../../../../services/jira.service';
@@ -16,7 +19,7 @@ import { QueueFolder } from 'src/app/models/default.folder.model';
   templateUrl: './queue.component.html',
   styleUrls: ['./queue.component.scss'],
 })
-export class QueueComponent implements OnInit {
+export class QueueComponent implements OnInit, OnDestroy {
   newQueue: boolean;
   queue: Queue;
   queues: any[];
@@ -67,6 +70,24 @@ export class QueueComponent implements OnInit {
 
   private visibilityGroupSearchChange: Subject<any> = new Subject();
 
+  private jqlEditor: EditorView;
+
+  /**
+   * A setter, not ngAfterViewInit: the dialog body is behind *ngIf="pageLoaded",
+   * so the host element does not exist until permissions and fields have loaded.
+   */
+  @ViewChild('jqlHost') set jqlHost(host: ElementRef<HTMLElement> | undefined) {
+    if (!host || this.jqlEditor) {
+      return;
+    }
+    this.jqlEditor = createJqlEditor({
+      parent: host.nativeElement,
+      doc: this.queue.jql || '',
+      placeholder: 'JQL filter for queue.',
+      onChange: (jql) => (this.queue.jql = jql),
+    });
+  }
+
   constructor(
     private changeDetectorRef: ChangeDetectorRef,
     private dialogRef: MatDialogRef<QueueComponent>,
@@ -102,7 +123,13 @@ export class QueueComponent implements OnInit {
     }
 
     this.pageLoaded = true;
+    // Both chunks are ~300ms; fetched while the user reads the form, not on the first keystroke.
+    JqlAutocompleteService.preload();
     this.fetchSavedFilters();
+  }
+
+  ngOnDestroy() {
+    this.jqlEditor?.destroy();
   }
 
   cancelEditing() {
@@ -112,6 +139,12 @@ export class QueueComponent implements OnInit {
   async clickOk() {
     if (!this.queue.name) {
       await alert('Name is a required field.');
+      return;
+    }
+
+    // In code, not only [maxlength]: a name can also arrive by paste or from an import.
+    if (this.queue.name.length > DEFAULT_LIMITS.QUEUE_NAME) {
+      await alert(`Name must be ${DEFAULT_LIMITS.QUEUE_NAME} characters or fewer.`);
       return;
     }
 
@@ -144,23 +177,19 @@ export class QueueComponent implements OnInit {
     this.dialogRef.close({ queue: this.queue, folder: this.importIntoFolder });
   }
 
-  async openJQLEditor() {
-    const options = {
-      jql: this.queue.jql || `issuetype = Story`,
-      header: 'Queue - JQL Builder',
-      descriptionText: 'Type in your JQL and the editor will prefill as it will in JIRA',
-      submitText: 'Use this JQL',
-      cancelText: 'Cancel',
-    };
-    window['AP'].jira.showJQLEditor(options, this.jqlEditorCallback);
+  /**
+   * The JQL field is the builder now: Connect's JQL editor dialog has no
+   * @forge/bridge equivalent, so the in-house CodeMirror editor is mounted in place
+   * of the plain textarea and the "Use JQL Builder" button is gone with it.
+   *
+   * Anything that sets queue.jql from outside the editor has to come through here,
+   * or the model and the visible document drift apart.
+   */
+  private setJql(jql: string) {
+    this.queue.jql = jql;
+    this.jqlEditor?.dispatch({ changes: { from: 0, to: this.jqlEditor.state.doc.length, insert: jql } });
+    this.changeDetectorRef.detectChanges();
   }
-
-  jqlEditorCallback = (obj) => {
-    if (obj.jql) {
-      this.queue.jql = obj.jql;
-      this.changeDetectorRef.detectChanges();
-    }
-  };
 
   async columnSelectionUpdated(operation, column) {
     console.log(operation, column);
@@ -198,14 +227,14 @@ export class QueueComponent implements OnInit {
   onFilterSelected(event: any): void {
     this.selectedFilter = event.option.value;
     this.selectedFilterValue = event.option.value.name;
-    this.queue.jql = this.selectedFilter.jql;
+    this.setJql(this.selectedFilter.jql || '');
   }
 
    toggleSavedFilters() {
     this.isSavedFilterSelected = !this.isSavedFilterSelected;
     if (this.isSavedFilterSelected) {
       this.selectedFilter = null;
-      this.queue.jql = '';
+      this.setJql('');
     }
   }
 }
