@@ -36,20 +36,11 @@ Notes worth keeping:
   `clickOk()` called `.filter()` on an undefined list both before a project is
   chosen and when the chosen one has no service desk.
 
-### QA impact — correcting an earlier number
+### QA — see "The Forge QA suite does not exist yet" below
 
-Earlier notes said **4** QA cases reference the JQL Builder. That was a count of
-matching *lines*; three of them belong to one case. It is **2 cases**:
-
-- **AQ-EDIT-12** — entirely about the builder dialog. Rewritten end to end
-  against the inline CodeMirror field.
-- **AQ-EDIT-01** — a field inventory listing `with 'Use JQL Builder'`. One clause
-  deleted.
-
-Two more need re-verification without being behavioural changes: **AQ-EDIT-04**
-(JQL required — same rule, different control, so selector-based automation
-breaks) and **AQ-EDIT-13** (Saved Filters — unchanged behaviour, now routed
-through `setJql()` so document and model cannot drift).
+Earlier notes here said 4 QA cases reference the JQL Builder and "need
+rewriting". Both halves were wrong: it is **2 cases**, and they must **not** be
+rewritten. See that section.
 
 ### Confirmed on a real install
 
@@ -236,11 +227,53 @@ them and still shipped a 40px strip. These need a real install and eyes.
    `extension.moduleKey ?? moduleKey`. Both are `??` chains so they differ only
    if a context carries both. Confirm against a real context via `forge logs`.
 
-## QA impact to fold back
+## The Forge QA suite does not exist yet — DEFERRED by the user 2026-09-07
 
-`advanced-queues-connect-qa` has **4 cases referencing the "Use JQL Builder"
-button**, which no longer exists. They need rewriting against the inline
-CodeMirror field before the Forge QA run.
+Agreed to record and build later. Nothing to do now; this is the shape of it.
+
+### Do not edit the Connect suite
+
+`advanced-queues-connect-qa/MANUAL-TEST-CASES.md` is titled **"(Connect)"** and
+is written against `advanced-queues-connect` @ `40382a1`, checked against the
+deployed `1.1.4-AC` Pro build on melon-inc. Its cases are **correct for Connect**
+— that app still has the `Use JQL Builder` button and still opens Jira's native
+editor. Editing them would make the Connect suite describe an app that does not
+exist. It is on branch `qa/05-list` and has moved on since `qa/01-bootstrap`.
+
+### The actual gap
+
+**`advanced-queues-forge-qa` is an empty repo with no commits at all.** The Forge
+app has no QA coverage whatsoever. Earlier notes framed this as "2 cases to
+rewrite", which badly understated it: those two cases are simply the first known
+evidence that the Forge suite cannot be a copy of the Connect one.
+
+### Divergences already known, before anyone tests
+
+| Area | Why the Connect case does not carry over |
+| --- | --- |
+| `AQ-EDIT-12` | Entirely about the JQL Builder dialog, which no longer exists — the field IS the builder |
+| `AQ-EDIT-01` | Field inventory lists `with 'Use JQL Builder'` |
+| `AQ-EDIT-04` | Same rule, different control: a CodeMirror editor, so selector-based automation breaks |
+| `AQ-EDIT-13` | Saved Filters unchanged in behaviour, now routed through `setJql()` |
+| Dashboards | Tree deleted entirely — every case touching it is void |
+| Issue-key click | Now a modal; Ctrl/Cmd-click opens a new tab |
+| Licence gate | **New behaviour with no Connect equivalent** — needs cases written from scratch |
+| Native queue import | Degrades on non-JSM projects instead of throwing |
+| Free vs Pro | Out of scope — Forge ships Pro only |
+
+### Three ways to build it, when we get there
+
+1. **Fork the Connect suite and audit every case.** Fastest to something
+   runnable; the risk is carrying over cases that silently no longer apply.
+2. **Write it fresh from the Forge tree**, the way the Connect one was written —
+   every control traced to `file:line`. The Connect suite's own header says
+   nothing in it was invented from a feature name, and that discipline is why it
+   is trustworthy.
+3. **Defer until after the PRs merge** and the app has been exercised by hand, so
+   the suite is written against something already seen working.
+
+Leaning to 1 **with a real audit pass**, not a blind copy. 170 cases, and their
+value is the traceability.
 
 ## Next action
 
