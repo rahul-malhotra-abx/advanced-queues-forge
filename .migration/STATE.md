@@ -1,9 +1,96 @@
 # Migration state
 
 **App:** Advanced Queues for Jira Service Management. Pro (`com.appbox.ai.advanced.queues`)
-**Stage:** Phases 1 and 2 complete. Both gates green. Phase 3 (bridge + routing)
-is next.
+**Stage:** Phases 1–4 complete. The port compiles and no `AP.*` remains.
+Phase 5 (iframe pass) is next and needs a real install.
 **Updated:** 2026-09-07
+
+## Runs on Atlassian — eligible, confirmed
+
+`manifest.yml` declares **no `permissions.external`**, which is what decides it
+(Trap 5: a single declared egress, even a `frame-src` to our own domain, forfeits
+it). Keep it that way — the pressure to add egress comes from wanting a font or a
+CDN back, and neither is worth the eligibility.
+
+## Phase 3 — bridge and routing (commit `1672f6e`)
+
+`@forge/bridge@6.3.1` shim shaped exactly like Connect's `AP`, so **all 33
+`AP.request` call sites are unedited**. Verified: build exit 0, zero
+`window['AP']` in the service.
+
+Three notes that cost time to rediscover:
+
+- `showFlag` in `@forge/bridge@6.3.1` is **synchronous** and takes
+  `actions: {text, onClick}[]`. It has no `onClose`. The order for this stage
+  said otherwise and was wrong.
+- Flag actions use `router.open('/browse/<key>')`, **not**
+  `UtilsService.getIssueUrl()` — that helper resolves the host via
+  `xdm_e`/`ancestorOrigins`/`AP._hostOrigin`, all of which are wrong inside a
+  Forge frame.
+- `tsconfig.json` needs `skipLibCheck: true`: `@forge/bridge`'s typings
+  `import type` from `@forge/resolver/shared`, which the UI does not install.
+  Both sibling ports set it too.
+
+**The shim uses no `invoke()`, so this app needs no resolver.** `src/index.js`
+stays the empty stub. Per Trap 2 a dead resolver is still a live endpoint anyone
+on the site can call, so an unused one would be a liability rather than neutral.
+
+## Phase 4 — component call sites (commit `7d7374f`)
+
+- **JQL builder** — `showJQLEditor` has no Forge equivalent, so Risk Register's
+  CodeMirror editor is ported and mounted in place of the textarea. The field
+  IS the builder now, matching Backlog and Risk Register, so the **"Use JQL
+  Builder" button is gone**. See the QA note below.
+- **`openIssueDialog`** → `ViewIssueModal` from `@forge/jira-bridge`, with a
+  `router.open` fallback.
+- **`jira-issue-key-renderer.ts` deliberately unchanged.** Its anchor stays
+  `href="javascript:void(0)"` so ag-Grid's `onCellClicked` is the single path.
+  Closed PR #9 added a second handler and fired the dialog twice.
+- **`AP.resize`** and the `ngAfterViewInit` that existed only to feed it: both
+  deleted. Forge sizes the frame.
+- **`index.html`** — `connect-cdn all.js`, `ResizeSensor.js`,
+  `advanced-queues.js` and both local files gone, plus the two Google Fonts
+  links. `advanced-queues.js` was a Response Templates copy-paste whose every
+  `AP.*` call was dead. GA `UA-181882142-5` goes with it, as decided.
+- **Four Connect descriptors removed from `src/assets/`.** Unreferenced by any
+  code, but `assets/` is copied wholesale into `dist/`, so app keys and base URLs
+  were shipping to the CDN.
+- One port edit from Risk Register's source: `BigInt(0)` →
+  `(globalThis as any).BigInt(0)`, since this `tsconfig`'s `lib` predates BigInt
+  and TS2583 fails the build.
+
+Verified: build exit 0, 1.07 MB initial; no `window['AP']`, `AP.jira` or
+`AP.resize` under `modules/`; no `invoke()` anywhere.
+
+## Phase 5 queue — the iframe pass
+
+Trap 12: every gate so far compares the code to itself. Checklist passed all of
+them and still shipped a 40px strip. These need a real install and eyes.
+
+1. **ag-Grid balham icon font.** Not yet done. AQ uses that exact theme, which
+   inlines its icon font as a `data:` URI; Forge's `font-src` has no `data:`, so
+   sort arrows, checkboxes and carets render as blank boxes. This has hit all
+   three prior migrations — treat as certain. Reuse
+   `backlog-prioritization-forge/scripts/extract-aggrid-font.mjs`.
+2. **`100vh` / `max-height` clamps**, reported by the porter and deliberately not
+   edited: `styles.scss:11-12` and `:50`, `project.component.scss:18`,
+   `grid.component.scss:5,10`. Risk Register found these deadlock the
+   auto-resizer once `AP.resize` is gone. **The grid pair is load-bearing** —
+   ag-Grid needs a bounded height — so it needs a replacement height source, not
+   deletion. Do this with the app on screen.
+3. **Roboto.** The blocked `@import` and `<link>`s are removed, so
+   `font-family: 'Roboto', sans-serif` now falls back. Under Connect the font
+   loaded, so this is a real visual change. Self-host the woff2 as an app asset,
+   or adopt Jira's own stack. Product call.
+4. **`moduleKey` shape.** Risk Register measured it top-level; this port reads
+   `extension.moduleKey ?? moduleKey`. Both are `??` chains so they differ only
+   if a context carries both. Confirm against a real context via `forge logs`.
+
+## QA impact to fold back
+
+`advanced-queues-connect-qa` has **4 cases referencing the "Use JQL Builder"
+button**, which no longer exists. They need rewriting against the inline
+CodeMirror field before the Forge QA run.
 
 ## Next action
 

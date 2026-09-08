@@ -6,11 +6,13 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <script src="https://connect-cdn.atl-paas.net/all.js"></script>
-  <script src="/assets/js/ResizeSensor.js"></script>
-  <script src="/assets/js/advanced-queues.js"></script>
+  <!-- The two Google Fonts <link>s that were here are gone. Forge's CSP blocks
+       fonts.googleapis.com, so they fetched nothing and only produced console
+       errors. Declaring egress for them would forfeit Runs on Atlassian
+       (Trap 5), which this app is currently eligible for.
+       Material Icons had zero usages in the app. Roboto is still named by
+       styles.scss and now resolves to the sans-serif fallback — see
+       .migration/findings/ for the self-host-or-restack decision. -->
 </head>
 <body>
 <app-root></app-root>

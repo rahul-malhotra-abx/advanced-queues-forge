@@ -78,17 +78,11 @@
         JQL
         <span ngbTooltip="Required Field" class="text-danger">*</span>
         <div class="d-flex justify-content-end gap-3">
-          <button class="btn btn-link float-end text-decoration-none p-0" (click)="openJQLEditor()">Use JQL Builder</button>
           <button class="btn btn-link float-end text-decoration-none p-0" (click)="toggleSavedFilters()">Saved Filters</button>
         </div>
       </label>
-      <textarea
-        class="form-control"
-        placeholder="JQL filter for queue."
-        id="queue-jql"
-        name="queue-jql"
-        autocomplete="off"
-        [(ngModel)]="queue.jql"></textarea>
+      <!-- The JQL builder itself: CodeMirror mounts into this host, see QueueComponent.jqlHost. -->
+      <div class="form-control" id="queue-jql" style="min-height: 4.5rem" #jqlHost></div>
               <!-- Conditional display based on Saved Filters vs JQL -->
       <ng-container *ngIf="isSavedFilterSelected">
         <!-- Autocomplete for Saved Filters -->

@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ENVIRONMENT } from '../../../environment';
 import { JiraService } from '../../../services/jira.service';
@@ -8,13 +8,14 @@ import { JiraService } from '../../../services/jira.service';
   templateUrl: './project.component.html',
   styleUrls: ['./project.component.scss'],
 })
-export class ProjectComponent implements OnInit, AfterViewInit {
+export class ProjectComponent implements OnInit {
   isInJIRA = window.parent !== window;
   links: any[] = [
     {
       route: 'queues',
       label: 'Queues',
-      image: '/assets/images/advanced-queues-dark.svg',
+      // Relative: a Forge app is served from a path on the CDN, so a leading slash escapes its scope.
+      image: 'assets/images/advanced-queues-dark.svg',
     },
     // {
     //   route: 'settings',
@@ -39,10 +40,5 @@ export class ProjectComponent implements OnInit, AfterViewInit {
       const lastPart = this.router.url.split('/')[this.router.url.split('/').length - 1];
       return lastPart === link.route;
     });
-  }
-
-  ngAfterViewInit(): void {
-    const currentHeight = document.getElementById('project-root').offsetHeight;
-    window['AP'].resize('100%', currentHeight < 40 ? 40 : currentHeight + 'px');
   }
 }
