@@ -168,10 +168,31 @@ export class GridComponent implements OnInit, OnChanges, OnDestroy {
     if (selected.column.colId !== 'key') {
       return;
     }
+    // Always cancel the anchor: it is href="javascript:void(0)", so the browser
+    // has nothing useful to do with either kind of click. Both paths below are
+    // driven explicitly instead.
     if (selected.event) {
       selected.event.preventDefault();
       selected.event.stopPropagation();
     }
+
+    // Ctrl/Cmd-click opens the issue in a new tab, plain click opens the modal.
+    //
+    // router.open, not a real href with target="_blank": the app runs in a
+    // sandboxed Forge iframe, so native modified-click on an anchor is not
+    // dependable, and building an absolute URL would need getParentDomain(),
+    // which reads AP._hostOrigin and cannot resolve the host from inside a
+    // Forge frame. router.open hands the product-relative path to the parent.
+    //
+    // This stays a SINGLE path deliberately. The renderer has no click handler
+    // of its own — closed PR #9 on the Connect repo added one alongside this
+    // branch and fired the dialog twice per click.
+    const event = selected.event;
+    if (event && (event.ctrlKey || event.metaKey)) {
+      router.open(`/browse/${selected.value}`);
+      return;
+    }
+
     try {
       await new ViewIssueModal({ context: { issueKey: selected.value } }).open();
     } catch (error) {

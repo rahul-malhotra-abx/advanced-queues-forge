@@ -142,6 +142,32 @@ export class JiraService {
     };
   }
 
+  /**
+   * Forge is the only place this app ships now, and it ships paid-only, so the
+   * licence check is the whole gate — there is no Free variant to fall back to.
+   *
+   * Only an explicit `license.active === false` counts as unlicensed. A missing
+   * licence object off production means a dev or staging install, where Forge
+   * does not populate one; locking those out would make every dev install look
+   * broken. On production a missing licence falls through to
+   * ENVIRONMENT.ALLOW_UNLICENSED, which is `false` for the paid listing.
+   */
+  static async hasValidLicense(): Promise<boolean> {
+    const context: any = await this.getContext();
+    if (context?.license) {
+      return context.license.active !== false;
+    }
+    if (String(context?.environmentType || '').toUpperCase() !== 'PRODUCTION') {
+      return true;
+    }
+    return ENVIRONMENT.ALLOW_UNLICENSED;
+  }
+
+  static async isValidPaidApplication(): Promise<boolean> {
+    const hasValidLicense = await JiraService.hasValidLicense();
+    return hasValidLicense && ENVIRONMENT.PAID_VERSION;
+  }
+
   static isInJira() {
     return window.parent !== window;
   }
@@ -470,12 +496,34 @@ export class JiraService {
     }
   }
 
+  /**
+   * Native JSM queues for a project. Returns `undefined` when the project has
+   * no service desk.
+   *
+   * This is the only Jira Service Management endpoint the app calls, and it is
+   * reachable for projects that are not service projects at all: the Connect
+   * descriptor declared no JSM condition, so the project page renders on every
+   * project type, and the import dialog lets the user pick any project from a
+   * list. A software or business project arriving here is therefore ordinary,
+   * not exceptional — it was the one unguarded request in this file, and it
+   * threw rather than returning nothing.
+   *
+   * Guarded rather than gated: adding a JSM condition to the module would hide
+   * the app from any non-JSM project a customer has enabled today, which is a
+   * silent feature removal on upgrade. Degrading this one feature is the
+   * smaller change.
+   */
   static async getProjectQueues(projectIdOrKey: string) {
-    return await this.AP.request({
-      url: `/rest/servicedeskapi/servicedesk/projectId:${projectIdOrKey}/queue`,
-      type: 'GET',
-      contentType: 'application/json',
-    });
+    try {
+      return await this.AP.request({
+        url: `/rest/servicedeskapi/servicedesk/projectId:${projectIdOrKey}/queue`,
+        type: 'GET',
+        contentType: 'application/json',
+      });
+    } catch (error) {
+      console.warn(`No service desk for project ${projectIdOrKey}; it is probably not a service project.`, error);
+      return undefined;
+    }
   }
 
   static async executeJQL(jql: string, maxResults: number, properties?: string[], fields?: string[], expand?: string): Promise<any[]> {
@@ -505,10 +553,34 @@ export class JiraService {
     return allIssues;
   }
 
+  /**
+   * Permissions for the CURRENT project. The project scope is not optional.
+   *
+   * `/rest/api/3/mypermissions` without a project answers "does this user hold
+   * the permission in AT LEAST ONE project". Every caller here asks about
+   * ADMINISTER_PROJECTS to decide whether to unlock the shared queue and folder
+   * editors — so unscoped, a user who administers one unrelated project reads as
+   * an admin on every project in the site. Jira then refuses the property write,
+   * and because the save path does not await, the 403 is swallowed and the edit
+   * silently vanishes.
+   *
+   * The project id is resolved here rather than threaded through the five
+   * callers: they all render inside the project page, so the Forge context
+   * already knows which project, and one resolution point cannot drift.
+   *
+   * Fails CLOSED. No project id means no answer, and `hasOneOfPermission`
+   * treats a missing answer as "no permission".
+   */
   static async getUserPermissions(permissions: string[]) {
     try {
+      const context = await this.getContext();
+      const projectId = context?.jira?.project?.id;
+      if (!projectId) {
+        console.warn('No project in context; refusing to evaluate project permissions unscoped.');
+        return undefined;
+      }
       const userPermissions = await this.AP.request({
-        url: `/rest/api/3/mypermissions?permissions=${permissions.join(',')}`,
+        url: `/rest/api/3/mypermissions?projectId=${encodeURIComponent(projectId)}&permissions=${permissions.join(',')}`,
         type: 'GET',
         contentType: 'application/json',
       });

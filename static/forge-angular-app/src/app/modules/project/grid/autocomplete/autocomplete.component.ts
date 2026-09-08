@@ -10,6 +10,9 @@ import { JiraUserModel } from 'src/app/models/jira.user.model';
   styleUrls: ['./autocomplete.component.scss'],
 })
 export class AutocompleteComponent implements ICellEditorAngularComp, OnInit {
+  /** Same-origin, relative: a leading slash escapes the app's scope on Forge. */
+  static readonly AVATAR_PLACEHOLDER = 'assets/images/avatar-placeholder.svg';
+
   searchValue: string = '';
   issueKey: string = '';
   projectKey: string = '';
@@ -21,12 +24,16 @@ export class AutocompleteComponent implements ICellEditorAngularComp, OnInit {
   dropdownSettings: IDropdownSettings = {};
 
   agInit(params: any): void {
-    console.log(params);
     this.selectedItems = [
       {
         accountId: params.node.data.fields.assignee?.accountId || '',
         displayName: params.node.data.fields.assignee?.displayName || 'Unassignee',
-        avatarUrl: 'https://cdn.pixabay.com/photo/2017/06/13/12/54/profile-2398783_1280.png' //params.node.data.fields.avatarUrls['16x16'],
+        // Was a hardcoded cdn.pixabay.com stock photo, with the intended source
+        // commented out beside it as `fields.avatarUrls` — which is undefined,
+        // since Jira hangs avatarUrls off the assignee, not off fields. So every
+        // row showed the same stranger's face. Forge's CSP blocks that CDN
+        // outright, and declaring egress for it would forfeit Runs on Atlassian.
+        avatarUrl: params.node.data.fields.assignee?.avatarUrls?.['16x16'] || AutocompleteComponent.AVATAR_PLACEHOLDER,
       }
     ];
     this.issueKey = params.node.data.id;
@@ -57,13 +64,13 @@ export class AutocompleteComponent implements ICellEditorAngularComp, OnInit {
     this.filteredAssignees = data;
     this.filteredAssigneesList = this.filteredAssignees.map(assignee => ({
       ...assignee,
-      avatarUrl: assignee.avatarUrls?.['16x16'] || 'https://cdn.pixabay.com/photo/2017/06/13/12/54/profile-2398783_1280.png'
+      avatarUrl: assignee.avatarUrls?.['16x16'] || AutocompleteComponent.AVATAR_PLACEHOLDER
     }));
 
     this.filteredAssigneesList.unshift({
       accountId: null ,
       displayName: 'Unassignee',
-      avatarUrl: 'https://cdn.pixabay.com/photo/2017/06/13/12/54/profile-2398783_1280.png'
+      avatarUrl: AutocompleteComponent.AVATAR_PLACEHOLDER
     })
 
     this.loading = false;

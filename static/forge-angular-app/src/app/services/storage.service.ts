@@ -38,12 +38,36 @@ export class StorageService {
       };
       propertiesArray.push(property);
     }
-    if (this.storageContext === StorageContext.PROJECT) {
-      await JiraService.saveProjectProperties(this.referenceKey, propertiesArray);
-    } else if (this.storageContext === StorageContext.USER) {
-      await JiraService.saveUserProperties(this.referenceKey, propertiesArray);
-    } else if (this.storageContext === StorageContext.TICKET) {
-      await JiraService.saveTicketProperties(this.referenceKey, propertiesArray);
+    // Every caller invokes save() without awaiting it and without a .catch, so
+    // before this a rejected write was an unhandled promise rejection behind an
+    // optimistic UI: the edit appeared to apply and was never stored, silently.
+    // A 403 from a permission problem looked exactly like a successful save.
+    //
+    // Reporting here rather than at the 10+ call sites: they would all need the
+    // same await and the same catch, and the one that got missed would be the
+    // one that mattered. Swallowing the rejection also means the fire-and-forget
+    // callers no longer produce unhandled rejections.
+    try {
+      if (this.storageContext === StorageContext.PROJECT) {
+        await JiraService.saveProjectProperties(this.referenceKey, propertiesArray);
+      } else if (this.storageContext === StorageContext.USER) {
+        await JiraService.saveUserProperties(this.referenceKey, propertiesArray);
+      } else if (this.storageContext === StorageContext.TICKET) {
+        await JiraService.saveTicketProperties(this.referenceKey, propertiesArray);
+      }
+      return true;
+    } catch (error) {
+      console.error(`Failed to save ${this.storageBaseKey}`, error);
+      const permissionDenied = /\b40[13]\b/.test(String((error as any)?.message ?? error));
+      JiraService.showNotification(
+        'Changes not saved',
+        permissionDenied
+          ? 'You do not have permission to change this in this project. Your edit has not been stored.'
+          : 'Jira rejected the change, so your edit has not been stored. Reload and try again.',
+        'error',
+        'manual'
+      );
+      return false;
     }
   }
 

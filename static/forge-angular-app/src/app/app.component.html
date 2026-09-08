@@ -1,1 +1,14 @@
 <router-outlet></router-outlet>
+
+<!--
+  The outlet stays: removing it mid-navigation breaks the router, and the gate
+  can flip after routing has already happened. The app is hidden by styles.scss
+  instead — see html.aq-unlicensed.
+
+  No logo and no wordmark. Every surface this renders in already names the app
+  in its own header directly above, so a lockup here only repeats it.
+-->
+<div class="aq-licence-gate" *ngIf="licensed === false">
+  <h1>You don't have a valid licence</h1>
+  <p>There seems to be an issue with your Advanced Queues for Jira Service Management licence. Contact your admin to verify the licence.</p>
+</div>

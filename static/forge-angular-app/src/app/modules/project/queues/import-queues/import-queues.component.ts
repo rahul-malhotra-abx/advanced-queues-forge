@@ -25,6 +25,8 @@ export class ImportQueuesComponent implements OnInit {
   maxResults = 50;
   UtilService = UtilsService;
   currentProjectQueues: any[];
+  /** The selected project has no service desk, so there are no native queues to import. */
+  noServiceDeskForProject = false;
   groups: any[];
   importIntoGroupId: any;
   isAdmin = false;
@@ -59,7 +61,6 @@ export class ImportQueuesComponent implements OnInit {
   }
 
   displayFn = (variable) => {
-    console.log('variable', variable);
     if (variable) {
       this.loadQueuesForProject(variable.id);
     }
@@ -68,6 +69,16 @@ export class ImportQueuesComponent implements OnInit {
 
   async loadQueuesForProject(projectId) {
     const queues = await JiraService.getProjectQueues(projectId);
+    // undefined means the chosen project has no service desk. The picker lists
+    // every project the user can see, not just service ones, so this is a
+    // routine selection rather than an error — say so instead of leaving an
+    // empty list that reads as "this project has no queues".
+    if (!queues?.values) {
+      this.currentProjectQueues = undefined;
+      this.noServiceDeskForProject = true;
+      return;
+    }
+    this.noServiceDeskForProject = false;
     this.currentProjectQueues = queues.values;
     this.currentProjectQueues.map((cpq) => (cpq.selected = false));
   }
@@ -82,7 +93,10 @@ export class ImportQueuesComponent implements OnInit {
   }
 
   async clickOk() {
-    if (this.currentProjectQueues.filter((cpq) => cpq.selected).length === 0) {
+    // Optional chaining, because currentProjectQueues is undefined both before
+    // a project is chosen and when the chosen one has no service desk. Without
+    // it, Import threw a TypeError in either case rather than prompting.
+    if (!this.currentProjectQueues?.some((cpq) => cpq.selected)) {
       await alert('Please select at least one queue to import');
       return;
     }
