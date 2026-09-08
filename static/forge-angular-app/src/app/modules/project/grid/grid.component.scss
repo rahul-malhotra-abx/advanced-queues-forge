@@ -1,6 +1,27 @@
 @import '~ag-grid-community/dist/styles/ag-grid.css';
 @import '~ag-grid-community/dist/styles/ag-theme-balham.min.css';
 
+// Trap 14. The balham theme imported above embeds its icon font as a base64
+// `data:` URI, and Forge's font-src is 'self' plus Atlassian hosts with NO
+// `data:` — so every glyph (sort arrows, checkboxes, expand carets, the column
+// menu) silently renders as nothing. The console error names a 30 kB base64
+// blob and mentions neither ag-Grid nor the grid, which is why it gets
+// re-diagnosed on every migration.
+//
+// This re-declares the same family AFTER the theme import: for a given family
+// the last @font-face wins, so the same-origin file is what loads.
+// Re-extract with scripts/extract-aggrid-font.mjs after any ag-Grid upgrade.
+// NOT permissions.external — that is declared egress and costs Runs on
+// Atlassian eligibility.
+@font-face {
+  font-family: agGridBalham;
+  // Relative to THIS file, not src/ — component stylesheets resolve urls from
+  // their own directory at build time.
+  src: url('../../../../assets/fonts/agGridBalham.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+}
+
 .prioritization-grid {
   height: calc(100vh - 141px) !important;
 }
