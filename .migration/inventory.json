@@ -1,0 +1,248 @@
+{
+  "root": "advanced-queues/advanced-queues-connect",
+  "descriptor": null,
+  "descriptors": [
+    {
+      "file": "src/assets/advanced-queues-free-atlassian-connect.json",
+      "key": "com.appbox.ai.advanced.queues.free",
+      "name": "Advanced Queues for Jira Service Management. Free",
+      "baseUrl": "https://advanced-queues-free.appbox.ai",
+      "licensing": false,
+      "scopes": [
+        "READ",
+        "WRITE",
+        "DELETE"
+      ],
+      "moduleTypes": 3
+    },
+    {
+      "file": "src/assets/advanced-queues-pro-atlassian-connect.json",
+      "key": "com.appbox.ai.advanced.queues",
+      "name": "Advanced Queues for Jira Service Management. Pro",
+      "baseUrl": "https://advanced-queues.appbox.ai",
+      "licensing": true,
+      "scopes": [
+        "READ",
+        "WRITE",
+        "DELETE"
+      ],
+      "moduleTypes": 3
+    },
+    {
+      "file": "src/assets/local-advanced-queues-atlassian-connect.json",
+      "key": "com.appbox.ai.advanced.queues",
+      "name": "Advanced Queues for Jira Service Management",
+      "baseUrl": "https://rm.hiappbox.com/",
+      "licensing": false,
+      "scopes": [
+        "READ",
+        "WRITE",
+        "DELETE"
+      ],
+      "moduleTypes": 3
+    },
+    {
+      "file": "src/assets/qa-advanced-queues-atlassian-connect.json",
+      "key": "com.appbox.ai.advanced.queues",
+      "name": "Advanced Queues for Jira Service Management",
+      "baseUrl": "https://advanced-queues-qa.appbox.ai",
+      "licensing": false,
+      "scopes": [
+        "READ",
+        "WRITE",
+        "DELETE"
+      ],
+      "moduleTypes": 3
+    }
+  ],
+  "angular": "~13.3.11",
+  "apCalls": {
+    "AP.request": [
+      "src/app/services/jira.service.ts:18",
+      "src/app/services/jira.service.ts:38",
+      "src/app/services/jira.service.ts:50",
+      "src/app/services/jira.service.ts:60",
+      "src/app/services/jira.service.ts:70",
+      "src/app/services/jira.service.ts:79",
+      "src/app/services/jira.service.ts:92",
+      "src/app/services/jira.service.ts:102",
+      "src/app/services/jira.service.ts:112",
+      "src/app/services/jira.service.ts:122",
+      "src/app/services/jira.service.ts:132",
+      "src/app/services/jira.service.ts:155",
+      "src/app/services/jira.service.ts:171",
+      "src/app/services/jira.service.ts:178",
+      "src/app/services/jira.service.ts:192",
+      "src/app/services/jira.service.ts:202",
+      "src/app/services/jira.service.ts:209",
+      "src/app/services/jira.service.ts:223",
+      "src/app/services/jira.service.ts:236",
+      "src/app/services/jira.service.ts:248",
+      "src/app/services/jira.service.ts:274",
+      "src/app/services/jira.service.ts:289",
+      "src/app/services/jira.service.ts:301",
+      "src/app/services/jira.service.ts:327",
+      "src/app/services/jira.service.ts:349",
+      "src/app/services/jira.service.ts:367",
+      "src/app/services/jira.service.ts:388",
+      "src/app/services/jira.service.ts:402",
+      "src/app/services/jira.service.ts:418",
+      "src/app/services/jira.service.ts:438",
+      "src/app/services/jira.service.ts:449",
+      "src/app/services/jira.service.ts:460",
+      "src/app/services/jira.service.ts:485",
+      "src/app/services/jira.service.ts:495",
+      "src/app/services/jira.service.ts:511"
+    ],
+    "AP.context.getContext": [
+      "src/app/services/jira.service.ts:42",
+      "src/assets/js/advanced-queues.js:11"
+    ],
+    "AP.jira.showJQLEditor": [
+      "src/app/services/jira.service.ts:148"
+    ],
+    "AP.resize": [
+      "src/app/services/jira.service.ts:167",
+      "src/assets/js/advanced-queues.js:16"
+    ],
+    "AP.flag.create": [
+      "src/app/services/jira.service.ts:480"
+    ],
+    "AP.events.on": [
+      "src/app/services/jira.service.ts:525"
+    ],
+    "AP.context": [
+      "src/assets/js/advanced-queues.js:10"
+    ],
+    "AP.getCurrentUser": [
+      "src/assets/js/advanced-queues.js:61"
+    ]
+  },
+  "unsolvedAp": [
+    "AP.events.on",
+    "AP.jira.showJQLEditor",
+    "AP.jira.openIssueDialog",
+    "AP._hostOrigin"
+  ],
+  "bracketNotationAp": {
+    "_note": "Added by lead 2026-09-07. extract-inventory.mjs greps 'AP\\.' only and MISSES window['AP'] entirely (Trap 14). These 14 sites are additional to apCalls above, not duplicates of it.",
+    "facade": "src/app/services/jira.service.ts:14,28-34 maps window['AP'].{context,user,jira,navigator,flag,resize,events} onto one local object — this is the single seam ui-bridge replaces",
+    "outsideJiraService": [
+      "src/app/modules/project/project/project.component.ts:51 → window['AP'].resize('100%', ...) — iframe sizing, Forge auto-sizes (Trap 12)",
+      "src/app/modules/project/dashboards/widget/widget.component.ts:54 → window['AP'].jira.showJQLEditor(options, cb)",
+      "src/app/modules/project/queues/queue/queue.component.ts:155 → window['AP'].jira.showJQLEditor(options, cb)",
+      "src/app/modules/project/grid/grid.component.ts:163 → window['AP'].jira.openIssueDialog(...) — UNSOLVED, not in any prior migration",
+      "src/app/services/utils.service.ts:70-71 → window['AP']._hostOrigin — private undocumented Connect API, no Forge equivalent"
+    ]
+  },
+  "trap14": {
+    "absoluteAssetPaths": [
+      "src/index.html:12 → /assets/js/ResizeSensor.js",
+      "src/index.html:13 → /assets/js/advanced-queues.js",
+      "src/app/modules/project/project/project.component.ts:17 → /assets/images/advanced-queues-dark.svg",
+      "src/app/services/jira.service.ts:137 → /assets/images/system-icon.png"
+    ],
+    "agGridTheme": "ag-theme-balham (3 sites) — the exact theme that inlines its icon font as a data: URI. Forge font-src has no data:. Reuse backlog-prioritization-forge/scripts/extract-aggrid-font.mjs.",
+    "i18n": "none — no TranslateHttpLoader, so the /assets/i18n/ 422 that hit Checklist does not apply"
+  },
+  "surveyVerdicts": {
+    "_source": "findings/01-survey.md — holds the full apVerdicts / apRequestFamilies / nonApiV3Paths / storage / compiles / jsm blocks. Work orders inline the relevant rows from there; do not re-derive.",
+    "headlines": {
+      "advanced-queues.js": "DEAD — every AP.* site in it is dead (ResizeSensor targets #response-template-wrapper, a Response Templates leftover that does not exist here). Delete it and both script tags. Only live side effects are a console.error override and GA UA-181882142-5.",
+      "AP.events.on:525": "LOAD-BEARING — one event, flag.action, opens the issue in a new tab. Substitute: showFlag onClose + router.open from @forge/bridge.",
+      "AP.jira.showJQLEditor:148": "WRAPPER DEAD, CAPABILITY LIVE — JiraService.openJQLEditor has zero callers; the real sites are queue.component.ts:155 and widget.component.ts:54.",
+      "storage": "All through storage.service.ts alone. Only PROJECT and USER are live. TICKET/DASHBOARD/APPLICATION are branch-only with no constructor anywhere.",
+      "trap2": "DOES NOT APPLY — the APPLICATION-scoped store is empty on every tenant, so there is no global blob to move to @forge/kvs.",
+      "dataCarryForward": "NEARLY A NO-OP — live data is Jira project/user entity properties, which Forge reads through the same REST API. The only Connect addon-property calls (:203, :210, :224) are unreachable and hold no data. APP_BASE_KEY is com.appbox.ai.advanced.queues and is shared across variants, so pinning to PRO does not renamespace anything.",
+      "compileBreak": "development DOES NOT COMPILE — jira.service.ts:492 is missing the brace closing getSavedFilters() (opened :483). getAssignees/assignUserToIssue end up nested. Blocks Phase 1.",
+      "jsm": "ONE servicedeskapi call, jira.service.ts:403 (import-native-queues dialog). The PRO descriptor declares no JSM module and no JSM condition, so the project page renders on every project type and getProjectQueues throws on non-JSM projects — a pre-existing bug the port inherits.",
+      "environmentVariant": "environment.ts:30 picks the variant by hand-edited constant, NOT by an angular.json fileReplacement — so the committed tree builds FREE for every configuration including build-prod. Pin to ADVANCED_QUEUES_PRO.",
+      "shimHang": "jira.service.ts:13-27 neither resolves nor rejects when AP is undefined — a latent hang to fix in the Forge shim, not port."
+    }
+  },
+  "gateGap": {
+    "script": "connect-to-forge-migration/skill/scripts/check-scope-ceiling.mjs",
+    "problem": "SCOPE_MAP has no JSM scopes. Verified: read:servicedesk-request against this descriptor returns UNKNOWN and exits 1.",
+    "fix": "Add the JSM read scope mapped to READ. Connect's READ already grants /rest/servicedeskapi/ GETs, so it is within ceiling — the gate just cannot see it. AQ is the first JSM app through."
+  },
+  "trap13": {
+    "status": "LIVE, not latent",
+    "why": "Angular 13 + angular.json production config omits `optimization`, so it defaults to true → inlineCritical on → Forge CSP blocks the injected onload → ALL global CSS silently stops applying",
+    "fix": "set production.optimization = { scripts: true, fonts: true, styles: { minify: true, inlineCritical: false } }"
+  },
+  "angularFloor": {
+    "verdict": "NO UPGRADE REQUIRED — this is the key difference from Backlog Prioritization",
+    "detail": "Trap 15 sets the floor at Angular 13 / TypeScript 4.5 for @forge/bridge .d.ts to parse. AQ ships Angular 13.3.11 / TypeScript 4.6.4, exactly at the floor. Material 13 is pre-MDC so no legacy-* churn; ag-grid 27 needs no withComponents() fix.",
+    "buildScripts": "angular.json scripts[] = marked.min.js, bootstrap.min.js (advanced-queues.js is NOT here — it loads from index.html:13)"
+  },
+  "propertyKeys": [
+    "com.appbox.ai.advanced.queues",
+    "com.appbox.ai.advanced.queues.free",
+    "com.appbox.ai.advanced.queues_project-admin-settings"
+  ],
+  "storageContexts": {
+    "PROJECT": 4,
+    "USER": 6,
+    "TICKET": 2,
+    "DASHBOARD": 2,
+    "APPLICATION": 2
+  },
+  "chunkLimit": 25000,
+  "variants": [
+    "ADVANCED_QUEUES_PRO",
+    "ADVANCED_QUEUES_FREE"
+  ],
+  "routes": [
+    "src/app/app-routing.module.ts → ''",
+    "src/app/app-routing.module.ts → 'project/:id'",
+    "src/app/app-routing.module.ts → 'app-admin-panel'",
+    "src/app/modules/app-admin-panel/app-admin-panel-routing.module.ts → 'project-enablement'",
+    "src/app/modules/project/project-routing.module.ts → ''",
+    "src/app/modules/project/project-routing.module.ts → 'queues'",
+    "src/app/modules/project/project-routing.module.ts → 'dashboards'",
+    "src/app/modules/project/project-routing.module.ts → 'settings'"
+  ],
+  "externalUrls": [
+    "https://karma-runner.github.io",
+    "https://jasmine.github.io",
+    "https://registry.npmjs.org",
+    "https://opencollective.com",
+    "https://github.com",
+    "https://tidelift.com",
+    "https://www.patreon.com",
+    "https://feross.org",
+    "https://paulmillr.com",
+    "https://paypal.me",
+    "https://cdn.pixabay.com",
+    "https://support.appbox.ai",
+    "https://appbox.atlassian.net",
+    "https://advanced-queues-free.appbox.ai",
+    "https://appbox.ai",
+    "https://advanced-queues.appbox.ai",
+    "https://www.google-analytics.com",
+    "https://rm.hiappbox.com",
+    "https://advanced-queues-qa.appbox.ai",
+    "https://fonts.googleapis.com",
+    "https://connect-cdn.atl-paas.net",
+    "https://angular.io"
+  ],
+  "riskyDeps": [
+    {
+      "dep": "ngx-toastr",
+      "why": "renders inside the app iframe — use showFlag from @forge/bridge"
+    }
+  ],
+  "legacyScripts": [
+    "src/assets/js/advanced-queues.js"
+  ],
+  "apSummary": {
+    "AP.request": 35,
+    "AP.context.getContext": 2,
+    "AP.resize": 2,
+    "AP.jira.showJQLEditor": 1,
+    "AP.flag.create": 1,
+    "AP.events.on": 1,
+    "AP.context": 1,
+    "AP.getCurrentUser": 1
+  }
+}

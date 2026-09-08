@@ -1,0 +1,19 @@
+<div class="assignee-multiselect-dropdown">
+  <div style="position: absolute;">
+    <ng-multiselect-dropdown id="two" [settings]="dropdownSettings" [data]="filteredAssigneesList"
+      [(ngModel)]="selectedItems" (onSelect)="onAssigneeChange($event)" (remove)="onAssigneeRemove($event)">
+      <ng-template #optionsTemplate let-item let-option="option" let-id="id" let-isSelected="isSelected">
+        <div style="padding:1px 10px;margin-right:10px;right:2px;top:-2px; display: flex; align-items: center;">
+          <img [src]="getItems[id]?.avatarUrl" style="width: 18px; margin: 0 20px;" />
+          <label style="color: #333;min-width: 130px;font-weight:normal">{{ getItems[id].displayName }}</label>
+        </div>
+      </ng-template>
+      <ng-template #optionSelectedTemplate let-option="option" let-id="id">
+        <div>
+          <img [src]="getItems[id]?.avatarUrl" style="width: 18px; margin-right: 2px;" />
+          {{ option }}
+        </div>
+      </ng-template>
+    </ng-multiselect-dropdown>
+  </div>
+</div>

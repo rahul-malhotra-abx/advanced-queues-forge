@@ -1,0 +1,58 @@
+<h1 mat-dialog-title>
+  <i class="fa fa-pencil-alt text-black-50"></i>
+  &nbsp; Import Queues
+</h1>
+<div mat-dialog-content class="py-1">
+  <div class="row">
+    <div class="col-12 mb-3">
+      <label class="form-label">
+        Project
+        <span ngbTooltip="Required Field" class="text-danger">*</span>
+      </label>
+      <input type="text" class="form-select mb-1 w-75" placeholder="Select a project" [formControl]="myControl" [matAutocomplete]="auto" />
+      <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn">
+        <mat-option *ngFor="let option of filteredOptions | async" [value]="option">
+          {{ option.name }}
+          <span class="small text-muted">{{ '${' + option.key + '}' }}</span>
+        </mat-option>
+      </mat-autocomplete>
+    </div>
+    <div class="col-12 mb-3">
+      <label for="queue-name" class="form-label">
+        Scope
+        <span ngbTooltip="Required Field" class="text-danger">*</span>
+      </label>
+      <select class="form-select" [(ngModel)]="selectedQueueScope">
+        <option [value]="QueueScopes.PERSONAL">Personal</option>
+        <option [value]="QueueScopes.PROJECT" [disabled]="!isAdmin">Project</option>
+      </select>
+    </div>
+    <div class="col-12 mb-3">
+      <label class="form-label">
+        Import Into Group
+        <span ngbTooltip="Required Field" class="text-danger">*</span>
+      </label>
+      <select [(ngModel)]="importIntoGroupId" class="form-select">
+        <option *ngFor="let group of groups" [value]="group.id">{{ group.name }}</option>
+      </select>
+    </div>
+    <div class="col-12 mb-3" *ngIf="currentProjectQueues">
+      <p>
+        Please select the queues, you want to import
+        <span ngbTooltip="Required Field" class="text-danger">*</span>
+      </p>
+      <ul class="list-group">
+        <li class="list-group-item d-flex" *ngFor="let queue of currentProjectQueues">
+          <input class="form-check-input me-2" type="checkbox" [(ngModel)]="queue.selected" [id]="'queue-' + queue.id" />
+          <label class="form-check-label w-100 cursor-pointer" [for]="'queue-' + queue.id">
+            {{ queue.name }}
+          </label>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+<div mat-dialog-actions class="clearfix float-end">
+  <button class="btn btn-link text-dark text-decoration-none me-2" (click)="cancelEditing()">Cancel</button>
+  <button class="btn btn-primary" (click)="clickOk()">Import</button>
+</div>

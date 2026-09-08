@@ -1,0 +1,31 @@
+::ng-deep {
+  .assignee-multiselect-dropdown .multiselect-dropdown .dropdown-btn .selected-item {
+    border: 0px solid #91bdff !important;
+    background: #ffffff !important;
+    color: #0052cc !important;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+ 
+  .assignee-multiselect-dropdown .multiselect-dropdown .dropdown-btn .selected-item:hover {
+    border: 0px solid #000000 !important;
+    background: #cee3f1 !important;
+    color: #111213 !important;
+    cursor: pointer;
+  }
+
+  .assignee-multiselect-dropdown .multiselect-dropdown .dropdown-btn .selected-item {
+    border: 0px solid #000000 !important;
+    background: #ffffff !important;
+    color: #111213 !important;
+    min-width: 150px !important;
+    cursor: pointer;
+  }
+  .assignee-multiselect-dropdown .multiselect-dropdown .dropdown-btn {
+    border: 0px solid #000000 !important;
+    padding: 0px !important;
+  }
+}
+
+

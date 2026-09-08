@@ -1,0 +1,81 @@
+{
+  "name": "Advanced Queues for Jira Service Management. Free",
+  "description": "Advanced Queues for Jira Service Management. Free",
+  "key": "com.appbox.ai.advanced.queues.free",
+  "baseUrl": "https://advanced-queues-free.appbox.ai",
+  "vendor": {
+    "name": "Appbox.ai",
+    "url": "https://appbox.ai"
+  },
+  "authentication": {
+    "type": "jwt"
+  },
+  "apiMigrations": {
+    "context-qsh": true,
+    "signed-install": false
+  },
+  "lifecycle": {
+    "installed": "/api/installed/v2",
+    "uninstalled": "/api/uninstalled/v2"
+  },
+  "scopes": ["READ", "WRITE", "DELETE"],
+  "apiVersion": 1,
+  "modules": {
+    "jiraProjectPages": [
+      {
+        "url": "/index.html?projectKey=${project.key}&projectId=${project.id}#/project/${project.id}/queues",
+        "iconUrl": "/assets/images/advanced-queues-dark.svg",
+        "weight": 100,
+        "name": {
+          "value": "Advanced Queues"
+        },
+        "key": "advanced-queues-project",
+        "conditions": [
+          {
+            "condition": "user_is_logged_in"
+          },
+          {
+            "or": [
+              {
+                "condition": "entity_property_equal_to",
+                "params": {
+                  "entity": "project",
+                  "propertyKey": "com.appbox.ai.advanced.queues_project-admin-settings",
+                  "objectName": "advancedQueuesEnabled",
+                  "value": "true"
+                }
+              },
+              {
+                "condition": "entity_property_exists",
+                "invert": true,
+                "params": {
+                  "entity": "project",
+                  "propertyKey": "com.appbox.ai.advanced.queues_project-admin-settings"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "webSections": [
+      {
+        "key": "advanced-queues-section",
+        "location": "admin_plugins_menu",
+        "name": {
+          "value": "Advanced Queues"
+        }
+      }
+    ],
+    "adminPages": [
+      {
+        "url": "/index.html#/app-admin-panel/project-enablement",
+        "location": "admin_plugins_menu/advanced-queues-section",
+        "name": {
+          "value": "Project Enablement"
+        },
+        "key": "project-enablement"
+      }
+    ]
+  }
+}

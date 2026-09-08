@@ -1,0 +1,16 @@
+<div class="m-5 p-5">
+  <div class="mb-3 pl-4 pr-4">
+    <p class="setting-heading">
+      Date Settings
+      <span class="float-end small font-weight-normal">
+        <select class="form-select" [(ngModel)]="projectSettings.dateColumnFormat">
+          <option *ngFor="let format of dateFormats" [value]="format.value">
+            {{ format.label }}
+          </option>
+        </select>
+      </span>
+    </p>
+    <p class="text-justify text-muted col-8">Choose date settings for date time type columns.</p>
+  </div>
+  <div class="ruler ml-2 mr-2"></div>
+</div>

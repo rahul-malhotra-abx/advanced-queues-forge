@@ -1,0 +1,52 @@
+<div class="project-root" id="project-root">
+  <nav class="navbar navbar-expand-lg navbar-light bg-light pb-0 pt-0">
+    <div class="container-fluid pt-1 border-bottom">
+      <h1 class="navbar-brand mr-2 ms-2 pt-2 pb-0">
+        {{ Environment.APP_NAME }}
+      </h1>
+      <div class="navbar-collapse collapse text-black-50">&nbsp;Projects / {{ projectKey }}</div>
+      <div class="navbar-collapse collapse order-3 justify-content-end">
+        <ul class="navbar-nav ml-auto app-right-links">
+          <li class="nav-item">
+            <a
+              class="nav-link"
+              href="https://support.appbox.ai/docs/advanced-queues-for-jira-service-management/getting-started-with-advanced-queues/getting-started-2/"
+              target="_blank"
+              ngbTooltip="Advanced Queues Help">
+              <i class="far fa-question-circle"></i>
+              Help
+            </a>
+          </li>
+          <li>
+            <button class="btn btn-link text-dark" [matMenuTriggerFor]="beforeMenu"><i class="fa fa-ellipsis-v"></i></button>
+            <mat-menu class="project-help-menu" #beforeMenu="matMenu" xPosition="before">
+              <a
+                class="nav-link text-dark"
+                href="https://support.appbox.ai/docs/advanced-queues-for-jira-service-management/getting-started-with-advanced-queues/"
+                target="_blank">
+                <i class="far fa-flag"></i>
+                Getting Started
+              </a>
+              <a class="nav-link text-dark" href="https://appbox.atlassian.net/servicedesk/customer/portal/13" target="_blank">
+                <i class="far fa-life-ring"></i>
+                Contact Support
+              </a>
+            </mat-menu>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <!-- <nav mat-tab-nav-bar *ngIf="isAdmin" class="primary-tabs">
+    <a mat-tab-link *ngFor="let link of links"
+       [routerLink]="link.route"
+       (click)="activeLink = link"
+       [active]="activeLink == link">
+      <img *ngIf="link.image" [src]="link.image" height="18px"/>
+      <i *ngIf="link.icon" class="{{link.icon}}"></i>&nbsp; {{link.label}}
+    </a>
+  </nav> -->
+  <div class="project-root-container">
+    <router-outlet></router-outlet>
+  </div>
+</div>

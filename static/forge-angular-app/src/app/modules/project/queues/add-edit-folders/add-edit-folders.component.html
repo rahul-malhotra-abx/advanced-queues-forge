@@ -1,0 +1,44 @@
+<h1 mat-dialog-title>
+  <i class="fa fa-pencil-alt text-black-50"></i>
+  &nbsp; Edit Folders
+</h1>
+<div mat-dialog-content class="py-1">
+  <div class="row">
+    <div class="col-12 mb-3">
+      <ul class="list-group group-list" cdkDropList (cdkDropListDropped)="onFolderDrop($event)">
+        <ng-container *ngFor="let folder of folders; let i = index">
+          <li class="list-group-item" cdkDrag cdkDragLockAxis="y">
+            <div class="d-flex">
+              <i class="bi bi-grip-vertical me-1 fs-5 my-auto" cdkDragHandle ngbTooltip="Drag to reorder folders"></i>
+              <input type="text" [(ngModel)]="folder.name" [disabled]="!isAdmin" placeholder="Folder Name" class="form-control border-0 me-3" />
+              <select [(ngModel)]="folder.scope" class="me-3" [disabled]="!folder.new">
+                <option [value]="QueueFolderScopes.PERSONAL">{{ QueueFolderScopes.PERSONAL }}</option>
+                <option [value]="QueueFolderScopes.PROJECT" [disabled]="!isAdmin">{{ QueueFolderScopes.PROJECT }}</option>
+              </select>
+              <i class="fa fa-trash-alt my-auto cursor-pointer text-danger" ngbTooltip="Delete Folder" (click)="deleteFolder(i)"></i>
+            </div>
+            <ng-multiselect-dropdown
+              class="ms-2 jira-column-selection"
+              name="queue-columns"
+              [placeholder]="'Queues &nbsp;'"
+              [settings]="defaultDropdownSettings"
+              [data]="folder.scope === QueueFolderScopes.PROJECT ? projectQueues : personalQueues"
+              [(ngModel)]="folder.queues"
+              (onSelect)="columnSelectionUpdated('add', $event)"
+              (onDeSelect)="columnSelectionUpdated('remove', $event)"></ng-multiselect-dropdown>
+          </li>
+        </ng-container>
+      </ul>
+    </div>
+    <div class="col-12 mb-4 mt-2">
+      <button class="btn btn-outline-primary" (click)="addFolder()">
+        <i class="fa fa-plus"></i>
+        Add New Folder
+      </button>
+    </div>
+  </div>
+</div>
+<div mat-dialog-actions class="clearfix float-end">
+  <button class="btn btn-link text-dark text-decoration-none me-2" (click)="cancelEditing()">Cancel</button>
+  <button class="btn btn-primary" (click)="clickOk()">Save</button>
+</div>

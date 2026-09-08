@@ -1,0 +1,27 @@
+<h1 mat-dialog-title>
+  <i class="fa fa-pencil-alt text-black-50"></i>
+  &nbsp; Edit Queues
+</h1>
+<div mat-dialog-content class="py-1">
+  <div class="row">
+    <div class="col-12 mb-3">
+      <ul class="list-group">
+        <li *ngFor="let queue of queues; let i = index" class="d-flex list-group-item border-0">
+          <input type="text" class="form-control me-3" [(ngModel)]="queue.name" />
+          <button
+            class="btn btn-outline-danger ms-auto my-auto"
+            [disabled]="queue.scope === QueueScopes.PROJECT && !isAdmin"
+            [ngbTooltip]="queue.scope === QueueScopes.PROJECT && !isAdmin ? 'You don`t have enough permission' : 'Delete Queue'"
+            (click)="deleteQueue(i)">
+            <i class="fa fa-trash-alt"></i>
+          </button>
+        </li>
+      </ul>
+      <p *ngIf="queues.length === 0" class="text-muted">No queue created</p>
+    </div>
+  </div>
+</div>
+<div mat-dialog-actions class="clearfix float-end">
+  <button class="btn btn-link text-dark text-decoration-none me-2" (click)="cancelEditing()">Cancel</button>
+  <button class="btn btn-primary" (click)="clickOk()" [disabled]="queues.length === 0">Save</button>
+</div>

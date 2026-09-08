@@ -1,0 +1,17 @@
+.multiselect-dropdown {
+  margin-top: -15px;
+}
+
+.group-list {
+  .list-group-item {
+    border-width: 0;
+    box-shadow: 0 0 2px #aaa;
+    margin-bottom: 8px;
+    border-radius: 5px;
+    background: #0052cc0a;
+
+    .form-control {
+      background: transparent;
+    }
+  }
+}
