@@ -9,7 +9,11 @@ const environments = {
     APP_KEY: 'com.appbox.ai.advanced.queues',
     APP_BASE_KEY: 'com.appbox.ai.advanced.queues',
     ANALYTICS_ENABLED: true,
-    ALLOW_UNLICENSED: true,
+    // false on Forge. Under Connect this was `true` and nothing read it, so an
+    // unlicensed install was fully functional. Forge ships paid-only, so an
+    // install without an active licence must be gated — see
+    // JiraService.hasValidLicense.
+    ALLOW_UNLICENSED: false,
     FREE_VERSION: false,
     PAID_VERSION: true,
   },

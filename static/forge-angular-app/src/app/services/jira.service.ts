@@ -142,6 +142,32 @@ export class JiraService {
     };
   }
 
+  /**
+   * Forge is the only place this app ships now, and it ships paid-only, so the
+   * licence check is the whole gate — there is no Free variant to fall back to.
+   *
+   * Only an explicit `license.active === false` counts as unlicensed. A missing
+   * licence object off production means a dev or staging install, where Forge
+   * does not populate one; locking those out would make every dev install look
+   * broken. On production a missing licence falls through to
+   * ENVIRONMENT.ALLOW_UNLICENSED, which is `false` for the paid listing.
+   */
+  static async hasValidLicense(): Promise<boolean> {
+    const context: any = await this.getContext();
+    if (context?.license) {
+      return context.license.active !== false;
+    }
+    if (String(context?.environmentType || '').toUpperCase() !== 'PRODUCTION') {
+      return true;
+    }
+    return ENVIRONMENT.ALLOW_UNLICENSED;
+  }
+
+  static async isValidPaidApplication(): Promise<boolean> {
+    const hasValidLicense = await JiraService.hasValidLicense();
+    return hasValidLicense && ENVIRONMENT.PAID_VERSION;
+  }
+
   static isInJira() {
     return window.parent !== window;
   }
