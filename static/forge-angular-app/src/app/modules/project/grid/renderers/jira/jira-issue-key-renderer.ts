@@ -1,6 +1,5 @@
 import {Component, OnDestroy, ViewEncapsulation} from '@angular/core';
 import {ICellRendererAngularComp} from 'ag-grid-angular';
-import {UtilsService} from '../../../../../services/utils.service';
 
 @Component({
   selector: 'app-jira-issue-key-cell',
@@ -12,11 +11,9 @@ import {UtilsService} from '../../../../../services/utils.service';
 })
 export class JiraIssueKeyRendererComponent implements ICellRendererAngularComp, OnDestroy {
   params: any;
-  issueUrl: string;
 
   agInit(params: any): void {
     this.params = params;
-    this.issueUrl = `${UtilsService.getParentDomain()}/browse/${params.data.key}`;
   }
 
   ngOnDestroy() {

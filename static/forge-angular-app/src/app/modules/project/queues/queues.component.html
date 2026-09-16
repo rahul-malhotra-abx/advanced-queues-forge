@@ -164,8 +164,8 @@
       <div class="ms-auto pe-3">
         <a
           class="btn btn-link text-decoration-none me-3"
-          target="_blank"
-          [href]="UtilsService.getParentDomain() + '/issues/?jql=' + currentQueue.jql">
+          href="javascript:void(0)"
+          (click)="openInIssueNavigator($event)">
           View in issue navigator
         </a>
         <span class="ms-auto my-auto cursor-pointer text-dark" [matMenuTriggerFor]="additionalQueueMenu">

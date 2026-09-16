@@ -40,10 +40,6 @@ export class UtilsService {
     return uuidv4();
   }
 
-  static getIssueUrl(issue: any) {
-    return `${UtilsService.getParentDomain()}/browse/${issue.key}`;
-  }
-
   static deepCopy(object: any) {
     return JSON.parse(JSON.stringify(object));
   }
@@ -64,20 +60,6 @@ export class UtilsService {
     } catch (e) {
       return '';
     }
-  }
-
-  static getParentDomain() {
-    let domain = window.location.origin;
-    try {
-      domain = document.location.ancestorOrigins[0] || window.location.origin;
-    } catch (e) {}
-    if (this.getParameterByName('xdm_e')) {
-      return decodeURIComponent(this.getParameterByName('xdm_e'));
-    }
-    if (window['AP'] && window['AP']._hostOrigin && window['AP']._hostOrigin !== '*') {
-      domain = window['AP']._hostOrigin;
-    }
-    return domain;
   }
 
   static getParameterByName(name: string, url = window.location.href) {

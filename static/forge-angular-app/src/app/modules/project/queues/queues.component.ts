@@ -8,6 +8,7 @@ import { confirm } from 'basic-modals';
 import { ImportQueuesComponent } from './import-queues/import-queues.component';
 import { QueueListViewComponent } from './queue-list-view/queue-list-view.component';
 import { format } from 'timeago.js';
+import { router } from '@forge/bridge';
 import { JiraService } from '../../../services/jira.service';
 import { DefaultQueues, Queue, QueuePriorities, QueueScopes } from '../../../models/default.queue.model';
 import { AddEditFoldersComponent } from './add-edit-folders/add-edit-folders.component';
@@ -154,6 +155,24 @@ export class QueuesComponent implements OnInit, OnDestroy {
       this.refreshQueueIssueCount();
     }, 30000);
     await this.refreshQueueIssueCount();
+  }
+
+  /**
+   * Open the current queue's JQL in Jira's issue navigator.
+   *
+   * `router.open` with a product-relative path, not an `href`. The old link
+   * built an absolute URL from `getParentDomain()`, which resolves the host
+   * through `xdm_e` / `ancestorOrigins` / `AP._hostOrigin` — none of which give
+   * the customer's Jira origin from inside a Forge frame.
+   *
+   * The JQL is ENCODED, which the Connect original did not do: a query holding
+   * a space, a quote or an `&` produced a mangled navigator URL
+   * (advanced-queues-connect-qa DEFECTS BUG-10).
+   */
+  openInIssueNavigator(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    router.open(`/issues/?jql=${encodeURIComponent(this.currentQueue.jql)}`);
   }
 
   ngOnDestroy() {
