@@ -335,6 +335,8 @@ export class QueuesComponent implements OnInit, OnDestroy {
       data: {
         projectIdOrKey: this.projectIdOrKey,
         folders: UtilsService.deepCopy(this.myProjectAndPersonalFolders),
+        // BUG-14: so the dialog can mark what has already been imported.
+        queues: UtilsService.deepCopy(this.myProjectAndPersonalQueues),
       },
     });
 

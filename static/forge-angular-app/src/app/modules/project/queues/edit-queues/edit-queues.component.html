@@ -7,7 +7,7 @@
     <div class="col-12 mb-3">
       <ul class="list-group">
         <li *ngFor="let queue of queues; let i = index" class="d-flex list-group-item border-0">
-          <input type="text" class="form-control me-3" [(ngModel)]="queue.name" />
+          <input type="text" class="form-control me-3" [(ngModel)]="queue.name" [maxlength]="DEFAULT_LIMITS.QUEUE_NAME" />
           <button
             class="btn btn-outline-danger ms-auto my-auto"
             [disabled]="queue.scope === QueueScopes.PROJECT && !isAdmin"

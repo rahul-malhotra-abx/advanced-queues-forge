@@ -5,7 +5,7 @@ import { FormControl } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { QueueScopes } from 'src/app/models/default.queue.model';
+import { Queue, QueueScopes } from 'src/app/models/default.queue.model';
 import { QueueFolder } from 'src/app/models/default.folder.model';
 import { alert } from 'basic-modals';
 
@@ -34,8 +34,12 @@ export class ImportQueuesComponent implements OnInit {
   QueueScopes = QueueScopes;
   selectedQueueScope = QueueScopes.PERSONAL;
 
+  /** Names already in this project's rail, lower-cased, for the already-imported mark. */
+  existingNames: Set<string>;
+
   constructor(private dialogRef: MatDialogRef<ImportQueuesComponent>, @Inject(MAT_DIALOG_DATA) public dataFromPatent) {
     this.folders = dataFromPatent.folders;
+    this.existingNames = new Set((dataFromPatent.queues ?? []).map((q: Queue) => q.name?.trim().toLowerCase()));
   }
 
   async ngOnInit() {
@@ -80,7 +84,13 @@ export class ImportQueuesComponent implements OnInit {
     }
     this.noServiceDeskForProject = false;
     this.currentProjectQueues = queues.values;
-    this.currentProjectQueues.map((cpq) => (cpq.selected = false));
+    // BUG-14: nothing checked whether a native queue had been imported before,
+    // so importing twice left two identical rows. Matched on name, which is
+    // what the import writes; the native id is not kept.
+    this.currentProjectQueues.map((cpq) => {
+      cpq.selected = false;
+      cpq.alreadyImported = this.existingNames.has(cpq.name?.trim().toLowerCase());
+    });
   }
 
   private _filter(value: string): any[] {
@@ -104,7 +114,9 @@ export class ImportQueuesComponent implements OnInit {
     this.dialogRef.close({
       folder: this.importIntoFolder,
       selectedQueueScope: this.selectedQueueScope,
-      queues: this.currentProjectQueues.filter((cpq) => cpq.selected),
+      // Already-imported rows cannot be ticked; filtered again so that a stale
+      // tick from before a project switch cannot slip one through.
+      queues: this.currentProjectQueues.filter((cpq) => cpq.selected && !cpq.alreadyImported),
     });
   }
 }

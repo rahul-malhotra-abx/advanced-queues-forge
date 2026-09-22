@@ -51,9 +51,15 @@
       </p>
       <ul class="list-group">
         <li class="list-group-item d-flex" *ngFor="let queue of currentProjectQueues">
-          <input class="form-check-input me-2" type="checkbox" [(ngModel)]="queue.selected" [id]="'queue-' + queue.id" />
-          <label class="form-check-label w-100 cursor-pointer" [for]="'queue-' + queue.id">
+          <input
+            class="form-check-input me-2"
+            type="checkbox"
+            [(ngModel)]="queue.selected"
+            [disabled]="queue.alreadyImported"
+            [id]="'queue-' + queue.id" />
+          <label class="form-check-label w-100 cursor-pointer" [for]="'queue-' + queue.id" [class.text-muted]="queue.alreadyImported">
             {{ queue.name }}
+            <span class="small text-muted" *ngIf="queue.alreadyImported">(already imported)</span>
           </label>
         </li>
       </ul>

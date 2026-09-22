@@ -148,8 +148,29 @@ export class QueueComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // BUG-14: case-insensitive, and across both scopes, because the rail shows
+    // them in one list and two rows reading the same name are indistinguishable.
+    const takenBy = this.queues?.find(
+      (q: Queue) => q.id !== this.queue.id && q.name?.trim().toLowerCase() === this.queue.name.trim().toLowerCase()
+    );
+    if (takenBy) {
+      await alert(`A ${takenBy.scope === QueueScopes.PERSONAL ? 'personal' : 'project'} queue is already called "${takenBy.name}".`);
+      return;
+    }
+
     if (!this.queue.jql) {
       await alert('JQL is a required field.');
+      return;
+    }
+
+    // BUG-14: asked of Jira rather than parsed here, so the rules are Jira's.
+    // A queue whose JQL Jira rejects renders an empty grid and logs to the
+    // console, which is no feedback at all once the dialog has closed. The
+    // validator was written for the autocomplete and never called; it returns
+    // nothing when the request itself fails, so an outage cannot block a save.
+    const jqlErrors = await JqlAutocompleteService.validate(this.queue.jql);
+    if (jqlErrors.length) {
+      await alert(`Jira cannot run this JQL:\n\n${jqlErrors.join('\n')}`);
       return;
     }
 

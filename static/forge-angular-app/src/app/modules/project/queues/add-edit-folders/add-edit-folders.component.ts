@@ -2,7 +2,7 @@ import { Component, Inject, OnInit, ViewEncapsulation } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { UtilsService } from '../../../../services/utils.service';
-import { confirm } from 'basic-modals';
+import { alert, confirm } from 'basic-modals';
 import { QueueFolder, QueueFolderScopes } from 'src/app/models/default.folder.model';
 import { JiraService } from 'src/app/services/jira.service';
 import { Queue, QueueScopes } from 'src/app/models/default.queue.model';
@@ -80,8 +80,28 @@ export class AddEditFoldersComponent implements OnInit {
   }
 
   async clickOk() {
+    // BUG-14: this dialog had no validation at all, so a nameless folder and a
+    // second folder with an existing name both saved and both rendered in the
+    // rail. Checked on Save rather than per keystroke: a row is blank for as
+    // long as it takes to type into it.
+    const named = this.folders.filter((g) => g.name?.trim());
+    if (named.length !== this.folders.length) {
+      await alert('Every folder needs a name.');
+      return;
+    }
+    const seen = new Set<string>();
+    for (const folder of this.folders) {
+      const key = `${folder.scope}:${folder.name.trim().toLowerCase()}`;
+      if (seen.has(key)) {
+        await alert(`Two ${folder.scope.toLowerCase()} folders are called "${folder.name.trim()}".`);
+        return;
+      }
+      seen.add(key);
+    }
+
     this.folders.map((g) => {
       delete g.new;
+      g.name = g.name.trim();
       g.queues = g.queues.map((q: Queue) => q.id);
     });
     this.dialogRef.close(this.folders);
