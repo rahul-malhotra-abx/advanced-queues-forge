@@ -437,14 +437,22 @@ export class JiraService {
     return result?.issues?.length > 0 ? result.issues[0] : undefined;
   }
 
-  static async getCountAndLastIssueForJQL(jql: string, lastUpdated = false) {
-    // search/jql no longer returns `total`. Unbounded JQL is refused here; its badge stays blank.
-    const count: number | undefined = await this.AP.request({
+  /** `undefined` when Jira will not count it, which it will not for unbounded JQL. */
+  static approximateCount(jql: string): Promise<number | undefined> {
+    return this.AP.request({
       url: '/rest/api/3/search/approximate-count',
       type: 'POST',
       data: JSON.stringify({ jql }),
       contentType: 'application/json',
-    }).then((res: any) => res?.count, () => undefined);
+    }).then(
+      (res: any) => res?.count,
+      () => undefined
+    );
+  }
+
+  static async getCountAndLastIssueForJQL(jql: string, lastUpdated = false) {
+    // search/jql no longer returns `total`. Unbounded JQL is refused here; its badge stays blank.
+    const count = await this.approximateCount(jql);
     // The queue's own sort, in any case (JQL keywords are case-insensitive), is swapped for ours.
     const filter = jql.replace(/\s*\border\s+by\b[\s\S]*$/i, '');
     jql = `${filter} ORDER BY created DESC`;
@@ -527,7 +535,15 @@ export class JiraService {
     }
   }
 
-  static async executeJQL(jql: string, maxResults: number, properties?: string[], fields?: string[], expand?: string): Promise<any[]> {
+  /** `onPage` is called after each page with the running total, for the grid's progress bar (BUG-12). */
+  static async executeJQL(
+    jql: string,
+    maxResults: number,
+    properties?: string[],
+    fields?: string[],
+    expand?: string,
+    onPage?: (loaded: number) => void
+  ): Promise<any[]> {
     expand = expand || 'renderedFields';
     properties = properties?.map((property) => `${ENVIRONMENT.APP_BASE_KEY}-${property}`);
     if (!fields) {
@@ -550,6 +566,7 @@ export class JiraService {
         contentType: 'application/json',
       });
       allIssues.push(...result.issues);
+      onPage?.(allIssues.length);
     } while (!result.isLast && allIssues.length < maxResults);
     return allIssues;
   }

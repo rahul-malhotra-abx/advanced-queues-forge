@@ -79,16 +79,55 @@ export class GridComponent implements OnInit, OnChanges, OnDestroy {
     this.gridOptions.columnDefs.push(...UtilsService.getColumnDefinitionsForKeys(this.allColumns, this.queue.columns));
     this.loadingIssues = true;
     this.loadingProgressBarWidth = 0;
-    this.loadingMessage = '';
+    this.loadingMessage = 'Counting issues...';
     this.issues = [];
     const maxResults = DEFAULT_LIMITS.MAX_ALLOWED_JQL_RESULTS;
 
+    // BUG-12: the bar and its message were set to 0 and '' and never touched
+    // again, so a load showed an empty bar under a blank line. The count is one
+    // request and comes back before the first page of issues does; without it
+    // (unbounded JQL) the bar reports pages rather than a percentage.
+    const expected = Math.min((await JiraService.approximateCount(this.queue.jql)) ?? 0, maxResults);
+    this.loadingMessage = expected ? `Loading ${expected} issues...` : 'Loading issues...';
+    const onPage = (loaded: number) => {
+      this.loadingProgressBarWidth = expected ? Math.min(100, Math.round((loaded / expected) * 100)) : 100;
+      this.loadingMessage = expected ? `Loaded ${loaded} of ${expected} issues` : `Loaded ${loaded} issues`;
+      this.changeDetectorRef.detectChanges();
+    };
+
     try {
-      this.issues = await JiraService.executeJQL(this.queue.jql, DEFAULT_LIMITS.MAX_ALLOWED_JQL_RESULTS, [], this.basicColumnsIncluded());
+      this.issues = await JiraService.executeJQL(
+        this.queue.jql,
+        DEFAULT_LIMITS.MAX_ALLOWED_JQL_RESULTS,
+        [],
+        this.basicColumnsIncluded(),
+        undefined,
+        onPage
+      );
     } catch (error) {
-      // Nothing is thrown past here: the grid stays in its loading state, as it always has for a query Jira rejects.
+      // BUG-12: this left the grid on its loading bar for ever, with the reason
+      // in the console. The queue is a user's own JQL, so the message names it.
       console.warn(`Could not load queue "${this.queue.name}"`, error);
+      this.loadingIssues = false;
+      this.rowData = [];
+      this.changeDetectorRef.detectChanges();
+      JiraService.showNotification(
+        'Queue could not load',
+        `Jira rejected this queue's JQL, so no issues are shown. Edit the queue to correct it.`,
+        'error',
+        'manual'
+      );
       return;
+    }
+
+    if (this.issues.length >= maxResults) {
+      // BUG-12: the cap was silent, so a queue matching more than this looked
+      // like a queue with exactly this many issues.
+      JiraService.showNotification(
+        'Showing the first ' + maxResults + ' issues',
+        'This queue matches more issues than the grid loads. Narrow its JQL to see the rest.',
+        'info'
+      );
     }
     this.rowData = this.issues;
     this.loadingIssues = false;
