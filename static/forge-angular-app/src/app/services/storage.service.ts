@@ -72,17 +72,18 @@ export class StorageService {
   }
 
   async get(): Promise<any> {
-    const properties = await this.getChunks(0, 5);
+    const properties = await this.getChunks(0);
     // save() chunks without limit, so a large value spans more than the first five.
     const totalSize = properties[`${this.storageBaseKey}_0`]?.totalSize ?? 0;
-    if (totalSize > 5) {
-      Object.assign(properties, await this.getChunks(5, totalSize));
+    for (let from = 5; from < totalSize; from += 5) {
+      Object.assign(properties, await this.getChunks(from));
     }
     return UtilsService.mergeJiraDataKeys(properties, this.storageBaseKey);
   }
 
-  private async getChunks(from: number, to: number): Promise<any> {
-    const propertyArray = [...Array(to - from).keys()].map((i) => `${this.storageBaseKey}_${from + i}`);
+  /** Five chunks from `from`: Jira rejects a project or issue read that names six or more properties (measured). */
+  private async getChunks(from: number): Promise<any> {
+    const propertyArray = [...Array(5).keys()].map((i) => `${this.storageBaseKey}_${from + i}`);
     if (this.storageContext === StorageContext.PROJECT) {
       return JiraService.getProjectProperties(this.referenceKey, propertyArray);
     } else if (this.storageContext === StorageContext.USER) {
