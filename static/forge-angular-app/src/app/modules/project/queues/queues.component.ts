@@ -230,7 +230,11 @@ export class QueuesComponent implements OnInit, OnDestroy {
 
   async refreshQueueIssueCount() {
     for (const queue of this.myProjectAndPersonalQueues) {
-      queue.lastRefreshedData = await JiraService.getCountAndLastIssueForJQL(queue.jql, true);
+      // Caught per queue: one whose JQL Jira rejects would otherwise end the pass for every queue after it.
+      queue.lastRefreshedData = await JiraService.getCountAndLastIssueForJQL(queue.jql, true).catch((error) => {
+        console.warn(`Could not refresh queue "${queue.name}"`, error);
+        return undefined;
+      });
       queue.lastCreatedDateMilliSeconds = queue.lastRefreshedData?.lastCreated
         ? new Date(queue.lastRefreshedData.lastCreated.fields.created).getTime()
         : 0;

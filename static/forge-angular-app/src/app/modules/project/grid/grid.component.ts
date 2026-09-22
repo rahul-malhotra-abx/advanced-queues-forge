@@ -81,14 +81,25 @@ export class GridComponent implements OnInit, OnChanges, OnDestroy {
     this.issues = [];
     const maxResults = DEFAULT_LIMITS.MAX_ALLOWED_JQL_RESULTS;
 
-    this.issues = await JiraService.executeJQL(this.queue.jql, DEFAULT_LIMITS.MAX_ALLOWED_JQL_RESULTS, [], this.basicColumnsIncluded());
+    try {
+      this.issues = await JiraService.executeJQL(this.queue.jql, DEFAULT_LIMITS.MAX_ALLOWED_JQL_RESULTS, [], this.basicColumnsIncluded());
+    } catch (error) {
+      // Nothing is thrown past here: the grid stays in its loading state, as it always has for a query Jira rejects.
+      console.warn(`Could not load queue "${this.queue.name}"`, error);
+      return;
+    }
     this.rowData = this.issues;
     this.loadingIssues = false;
     this.changeDetectorRef.detectChanges();
   }
 
   private async checkForNewIssues() {
-    const issues = await JiraService.executeJQL(this.queue.jql, DEFAULT_LIMITS.MAX_ALLOWED_JQL_RESULTS, [], this.basicColumnsIncluded());
+    const issues = await JiraService.executeJQL(this.queue.jql, DEFAULT_LIMITS.MAX_ALLOWED_JQL_RESULTS, [], this.basicColumnsIncluded()).catch(
+      () => undefined
+    );
+    if (!issues) {
+      return;
+    }
     const newIssues = UtilsService.findNewElementsInArray(this.issues, issues, 'key');
     if (newIssues.length > 0) {
       for (const issue of newIssues) {
