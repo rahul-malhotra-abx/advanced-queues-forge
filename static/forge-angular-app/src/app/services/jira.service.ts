@@ -636,18 +636,24 @@ export class JiraService {
     } catch (e) {}
   }
 
-  static async getAssignees(projectKey: string) {
-    try {
-      const assigneeList = await this.AP.request({
+  /** Per project, for the page's lifetime: every Assignee cell asks, and a scroll down a 200-row page once sent hundreds. */
+  private static assignees = new Map<string, Promise<any[]>>();
+
+  static getAssignees(projectKey: string): Promise<any[]> {
+    if (!this.assignees.has(projectKey)) {
+      const request = this.AP.request({
         url: `/rest/api/3/user/assignable/search?project=${projectKey}`,
         type: 'GET',
         contentType: 'application/json',
+      }).catch((e) => {
+        console.error('Error fetching assignees:', e);
+        this.assignees.delete(projectKey);
+        return [];
       });
-      return assigneeList;
-    } catch (e) {
-      console.error('Error fetching assignees:', e);
+      this.assignees.set(projectKey, request);
     }
-  }  
+    return this.assignees.get(projectKey);
+  }
 
   static async assignUserToIssue(assigneeId: string, issueKey: string) {
     try {
