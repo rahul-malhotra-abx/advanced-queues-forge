@@ -31,6 +31,7 @@ export class GridComponent implements OnInit, OnChanges, OnDestroy {
   @Input() queue: Queue;
   @Input() queueGridOptions: any;
   @Input() allColumns: any[];
+  @Input() dateColumnFormat: string;
   @Output() myQueuesViewChanged = new EventEmitter<any>();
 
   // Grid Data
@@ -73,6 +74,7 @@ export class GridComponent implements OnInit, OnChanges, OnDestroy {
   async search() {
     this.queueGridOptions = this.queueGridOptions || { pageSize: 10 };
     this.gridOptions = this.gridService.getGridOptions();
+    this.gridOptions.context = { dateColumnFormat: this.dateColumnFormat };
     this.gridOptions.columnDefs.splice(1, this.gridOptions.columnDefs.length - 1);
     this.gridOptions.columnDefs.push(...UtilsService.getColumnDefinitionsForKeys(this.allColumns, this.queue.columns));
     this.loadingIssues = true;

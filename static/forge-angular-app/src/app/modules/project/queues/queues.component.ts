@@ -22,6 +22,7 @@ import { StorageContext } from 'src/app/models/storage.context.enum';
 import { DataStorageKeys } from 'src/app/models/data.storage.keys.model';
 import { DEFAULT_QUEUE_VIEW_SETTINGS, QueueViewSettings } from 'src/app/models/default.queue-view-settings';
 import { DefaultQueueSortConfig } from 'src/app/models/default.queue.sort.config';
+import { DefaultProjectAdminSettings } from 'src/app/models/default.project.admin.settings.model';
 
 @Component({
   selector: 'app-queues',
@@ -64,6 +65,7 @@ export class QueuesComponent implements OnInit, OnDestroy {
   queueListConfig: QueueListConfig;
   timeFormat = format;
   jiraFields: any[];
+  dateColumnFormat: string;
   QueuePriorities = QueuePriorities;
   QueueScopes = QueueScopes;
   searchFilter = { name: '' };
@@ -82,6 +84,8 @@ export class QueuesComponent implements OnInit, OnDestroy {
     this.currentUser = await JiraService.getCurrentJiraUser();
     this.currentUserJiraGroups = await JiraService.getUserGroups(this.currentUser.accountId);
     this.jiraFields = await JiraService.getJiraFields();
+    this.dateColumnFormat =
+      (await JiraService.getProjectSettings(this.projectIdOrKey))?.dateColumnFormat || DefaultProjectAdminSettings.dateColumnFormat;
 
     // Load PROJECT queues and folders
     this.projectFoldersStorageService = new StorageService(StorageContext.PROJECT, this.projectIdOrKey, DataStorageKeys.PROJECT_FOLDERS);

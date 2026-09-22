@@ -31,6 +31,10 @@
           <i class="fa fa-pencil-alt"></i>
           Edit Queues (Bulk)
         </a>
+        <a class="nav-link text-dark" *ngIf="isAdmin" routerLink="../settings">
+          <i class="fa fa-sliders-h"></i>
+          Settings
+        </a>
       </mat-menu>
     </div>
     <div class="queue-list">
@@ -196,6 +200,7 @@
         [queue]="currentQueue"
         [queueGridOptions]="myProjectQueuesView.queueGridConfig[currentQueue.id].gridOptions"
         [allColumns]="jiraFields"
+        [dateColumnFormat]="dateColumnFormat"
         (myQueuesViewChanged)="myQueuesViewChanged($event)"></app-grid>
     </div>
   </div>
