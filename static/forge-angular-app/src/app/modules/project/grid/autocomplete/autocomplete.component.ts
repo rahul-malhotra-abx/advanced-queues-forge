@@ -27,7 +27,7 @@ export class AutocompleteComponent implements ICellEditorAngularComp, OnInit {
     this.selectedItems = [
       {
         accountId: params.node.data.fields.assignee?.accountId || '',
-        displayName: params.node.data.fields.assignee?.displayName || 'Unassignee',
+        displayName: params.node.data.fields.assignee?.displayName || 'Unassigned',
         // Was a hardcoded cdn.pixabay.com stock photo, with the intended source
         // commented out beside it as `fields.avatarUrls` — which is undefined,
         // since Jira hangs avatarUrls off the assignee, not off fields. So every
@@ -69,7 +69,7 @@ export class AutocompleteComponent implements ICellEditorAngularComp, OnInit {
 
     this.filteredAssigneesList.unshift({
       accountId: null ,
-      displayName: 'Unassignee',
+      displayName: 'Unassigned',
       avatarUrl: AutocompleteComponent.AVATAR_PLACEHOLDER
     })
 
