@@ -86,7 +86,7 @@
                       class="list-group-item"
                       cdkDrag
                       cdkDragLockAxis="y"
-                      [ngClass]="{ active: folder.name === currentFolder.name && queue.id === currentQueue?.id }">
+                      [ngClass]="{ active: folder.name === currentFolder?.name && queue.id === currentQueue?.id }">
                       <div class="d-flex">
                         <span [ngbTooltip]="queueSorting.sortBy === 'USER_SORT' ? 'Drag to reorder' : 'To Sort Queues, Please change to User Sort'">
                           <i

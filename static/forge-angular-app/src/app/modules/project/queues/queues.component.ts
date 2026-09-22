@@ -242,16 +242,18 @@ export class QueuesComponent implements OnInit, OnDestroy {
   }
 
   loadQueue(folder?: QueueFolder, queue?: Queue) {
-    if (!folder && !queue) {
+    if (!queue) {
       queue = this.myProjectAndPersonalQueues[0];
-      folder = this.myProjectAndPersonalFolders.find((f) => f.queues.indexOf(queue.id) > -1);
+      folder = undefined;
     }
-    this.currentFolder = folder;
     this.currentQueue = queue;
-    this.myProjectQueuesView.queueGridConfig[this.currentQueue.id] = { gridOptions: { pageSize: 10 } };
-    this.myProjectQueuesView.currentQueueFolderId = folder.id;
-    this.myProjectQueuesView.currentQueueId = queue.id;
-    this.myProjectQueuesViewStorageService.save(this.myProjectQueuesView);
+    this.currentFolder = folder || this.myProjectAndPersonalFolders.find((f) => f.queues.indexOf(queue?.id) > -1);
+    if (queue) {
+      this.myProjectQueuesView.queueGridConfig[queue.id] = { gridOptions: { pageSize: 10 } };
+      this.myProjectQueuesView.currentQueueFolderId = this.currentFolder?.id;
+      this.myProjectQueuesView.currentQueueId = queue.id;
+      this.myProjectQueuesViewStorageService.save(this.myProjectQueuesView);
+    }
     this.changeDetectorRef.detectChanges();
   }
 
@@ -294,9 +296,7 @@ export class QueuesComponent implements OnInit, OnDestroy {
       // this.myProjectAndPersonalQueuesStorageService.save(this.myProjectAndPersonalQueues);
       this._cleanFolderQueues();
       this._loadMySortedProjectQueues();
-      this.currentQueue = this.myProjectAndPersonalQueues.length ? this.myProjectAndPersonalQueues[0] : undefined;
-      this.currentFolder = this.myProjectAndPersonalFolders.find((mpg) => mpg.queues.indexOf(this.currentQueue.id) > -1);
-      this.loadQueue(this.currentFolder, this.currentQueue);
+      this.loadQueue();
     }
   }
 
