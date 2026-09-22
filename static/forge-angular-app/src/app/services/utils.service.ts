@@ -173,6 +173,7 @@ export class UtilsService {
               headerName: column[columnType.headerKey],
               cellClass: '',
               cellRenderer: columnType.renderer,
+              valueKey: columnType.valueKey,
               headerClass: '',
               maxWidth: 700,
               minWidth: 100,
