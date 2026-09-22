@@ -14,9 +14,15 @@ export interface Queue {
   visibilityGroups?: any[];
   updatedAt?: Date;
   updatedBy?: JiraUserModel;
-  lastRefreshedData?: any;
-  lastCreatedDateMilliSeconds?: any;
-  lastUpdatedDateMilliSeconds?: any;
+}
+
+/** Per queue, refreshed every 30 seconds. Kept beside the queues, never on them: a Queue is stored as-is. */
+export interface QueueRefreshData {
+  count?: number;
+  lastCreated?: any;
+  lastUpdated?: any;
+  createdMs: number;
+  updatedMs: number;
 }
 
 export const QueueScopes = {

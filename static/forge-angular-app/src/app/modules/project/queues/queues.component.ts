@@ -10,7 +10,7 @@ import { QueueListViewComponent } from './queue-list-view/queue-list-view.compon
 import { format } from 'timeago.js';
 import { router } from '@forge/bridge';
 import { JiraService } from '../../../services/jira.service';
-import { DefaultQueues, Queue, QueuePriorities, QueueScopes } from '../../../models/default.queue.model';
+import { DefaultQueues, Queue, QueuePriorities, QueueRefreshData, QueueScopes } from '../../../models/default.queue.model';
 import { AddEditFoldersComponent } from './add-edit-folders/add-edit-folders.component';
 import { EditQueuesComponent } from './edit-queues/edit-queues.component';
 import { DefaultQueueFolders, QueueFolder, QueueFolderScopes } from 'src/app/models/default.folder.model';
@@ -61,6 +61,7 @@ export class QueuesComponent implements OnInit, OnDestroy {
   UtilsService = UtilsService;
 
   mySortedProjectQueues = {};
+  queueRefreshData: { [queueId: string]: QueueRefreshData } = {};
 
   queueListConfig: QueueListConfig;
   timeFormat = format;
@@ -92,7 +93,7 @@ export class QueuesComponent implements OnInit, OnDestroy {
     this.projectFolders = (await this.projectFoldersStorageService.get()) || UtilsService.deepCopy(DefaultQueueFolders);
 
     this.projectQueuesStorageService = new StorageService(StorageContext.PROJECT, this.projectIdOrKey, DataStorageKeys.PROJECT_QUEUES);
-    this.projectQueues = (await this.projectQueuesStorageService.get()) || DefaultQueues;
+    this.projectQueues = QueuesComponent._dropStoredRefreshData((await this.projectQueuesStorageService.get()) || DefaultQueues);
 
     // Load PERSONAL queues and folders
     this.personalFoldersStorageService = new StorageService(
@@ -107,7 +108,7 @@ export class QueuesComponent implements OnInit, OnDestroy {
       this.currentUser.accountId,
       DataStorageKeys.USER_PROJECT_QUEUES(this.projectIdOrKey)
     );
-    this.personalQueues = (await this.personalQueuesStorageService.get()) || [];
+    this.personalQueues = QueuesComponent._dropStoredRefreshData((await this.personalQueuesStorageService.get()) || []);
 
     // Load MY queues and folders
     this.myProjectAndPersonalFoldersStorageService = new StorageService(
@@ -212,11 +213,11 @@ export class QueuesComponent implements OnInit, OnDestroy {
       } else if (this.queueSorting.sortBy === 'CREATED_AT' && this.queueSorting.sortOrder === 'DESC') {
         folderQueues = this.myProjectAndPersonalQueues
           .filter((pq) => folder.queues.indexOf(pq.id) > -1)
-          .sort(UtilsService.dynamicSort('-lastCreatedDateMilliSeconds'));
+          .sort(this._byRefreshTime('createdMs'));
       } else if (this.queueSorting.sortBy === 'UPDATED_AT' && this.queueSorting.sortOrder === 'DESC') {
         folderQueues = this.myProjectAndPersonalQueues
           .filter((pq) => folder.queues.indexOf(pq.id) > -1)
-          .sort(UtilsService.dynamicSort('-lastUpdatedDateMilliSeconds'));
+          .sort(this._byRefreshTime('updatedMs'));
       } else {
         folderQueues = this.myProjectAndPersonalQueues.filter((pq) => folder.queues.indexOf(pq.id) > -1);
       }
@@ -235,18 +236,38 @@ export class QueuesComponent implements OnInit, OnDestroy {
   async refreshQueueIssueCount() {
     for (const queue of this.myProjectAndPersonalQueues) {
       // Caught per queue: one whose JQL Jira rejects would otherwise end the pass for every queue after it.
-      queue.lastRefreshedData = await JiraService.getCountAndLastIssueForJQL(queue.jql, true).catch((error) => {
+      const refreshed = await JiraService.getCountAndLastIssueForJQL(queue.jql, true).catch((error) => {
         console.warn(`Could not refresh queue "${queue.name}"`, error);
         return undefined;
       });
-      queue.lastCreatedDateMilliSeconds = queue.lastRefreshedData?.lastCreated
-        ? new Date(queue.lastRefreshedData.lastCreated.fields.created).getTime()
-        : 0;
-      queue.lastUpdatedDateMilliSeconds = queue.lastRefreshedData?.lastUpdated
-        ? new Date(queue.lastRefreshedData.lastUpdated.fields.updated).getTime()
-        : 0;
+      this.queueRefreshData[queue.id] = {
+        count: refreshed?.count,
+        lastCreated: refreshed?.lastCreated,
+        lastUpdated: refreshed?.lastUpdated,
+        createdMs: refreshed?.lastCreated ? new Date(refreshed.lastCreated.fields.created).getTime() : 0,
+        updatedMs: refreshed?.lastUpdated ? new Date(refreshed.lastUpdated.fields.updated).getTime() : 0,
+      };
       await UtilsService.sleep(1000);
     }
+  }
+
+  private _byRefreshTime(key: 'createdMs' | 'updatedMs') {
+    return (a: Queue, b: Queue) => (this.queueRefreshData[b.id]?.[key] ?? 0) - (this.queueRefreshData[a.id]?.[key] ?? 0);
+  }
+
+  /**
+   * Counts and last-issue snapshots used to be assigned onto the queues themselves, and the queues are
+   * stored as they are, so every save wrote them into the property: stale numbers presented as live, and
+   * on the shared project property one user's permission-filtered results, issue keys included. They are
+   * held beside the queues now; this drops what earlier versions stored, on the next save of each list.
+   */
+  private static _dropStoredRefreshData(queues: Queue[]): Queue[] {
+    for (const queue of queues as any[]) {
+      delete queue.lastRefreshedData;
+      delete queue.lastCreatedDateMilliSeconds;
+      delete queue.lastUpdatedDateMilliSeconds;
+    }
+    return queues;
   }
 
   loadQueue(folder?: QueueFolder, queue?: Queue) {
