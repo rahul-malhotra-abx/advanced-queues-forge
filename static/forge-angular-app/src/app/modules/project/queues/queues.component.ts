@@ -292,10 +292,7 @@ export class QueuesComponent implements OnInit, OnDestroy {
       const currentQueueIndex = this.myProjectAndPersonalQueues.findIndex((pq) => pq.id === this.currentQueue.id);
       this.myProjectAndPersonalQueues.splice(currentQueueIndex, 1);
       // this.myProjectAndPersonalQueuesStorageService.save(this.myProjectAndPersonalQueues);
-      this.currentFolder.queues.splice(
-        this.currentFolder.queues.findIndex((q) => q.id === this.currentQueue.id),
-        1
-      );
+      this._cleanFolderQueues();
       this._loadMySortedProjectQueues();
       this.currentQueue = this.myProjectAndPersonalQueues.length ? this.myProjectAndPersonalQueues[0] : undefined;
       this.currentFolder = this.myProjectAndPersonalFolders.find((mpg) => mpg.queues.indexOf(this.currentQueue.id) > -1);
