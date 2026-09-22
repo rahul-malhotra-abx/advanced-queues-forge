@@ -28,12 +28,11 @@
       </select>
     </div>
     <div class="col-12 mb-3">
-      <label class="form-label">
-        Import Into Group
-        <span ngbTooltip="Required Field" class="text-danger">*</span>
-      </label>
-      <select [(ngModel)]="importIntoGroupId" class="form-select">
-        <option *ngFor="let group of groups" [value]="group.id">{{ group.name }}</option>
+      <label class="form-label">Import Into Folder</label>
+      <select [(ngModel)]="importIntoFolder" class="form-select">
+        <ng-container *ngFor="let folder of folders">
+          <option *ngIf="folder.scope === selectedQueueScope" [ngValue]="folder">{{ folder.name }}</option>
+        </ng-container>
       </select>
     </div>
     <!-- Native queues are a Jira Service Management feature, but the picker

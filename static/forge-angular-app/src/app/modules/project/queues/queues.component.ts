@@ -305,13 +305,13 @@ export class QueuesComponent implements OnInit, OnDestroy {
       width: '500px',
       data: {
         projectIdOrKey: this.projectIdOrKey,
-        folders: UtilsService.deepCopy(this.projectFolders),
+        folders: UtilsService.deepCopy(this.myProjectAndPersonalFolders),
       },
     });
 
     dialogRef.afterClosed().subscribe(async (result) => {
       if (result) {
-        result.queues.map((queue: any) => {
+        for (const queue of result.queues) {
           // Returns a JIRA Queue.
           const newQueue = {
             name: queue.name,
@@ -321,29 +321,23 @@ export class QueuesComponent implements OnInit, OnDestroy {
             scope: result.selectedQueueScope || QueueScopes.PROJECT,
             id: UtilsService.uuidv4(),
           };
-          this.myProjectAndPersonalQueues.push(newQueue);
-          this.myProjectAndPersonalFolders[this.myProjectAndPersonalFolders.findIndex((g) => g.id === result.importFolderId)].queues.push(
-            newQueue.id
-          );
-          if (result.selectedQueueScope === QueueScopes.PERSONAL) {
+          if (newQueue.scope === QueueScopes.PERSONAL) {
             this.personalQueues.push(newQueue);
-            this.personalFolders[this.personalFolders.findIndex((g) => g.id === result.importFolderId)].queues.push(newQueue.id);
           } else {
             this.projectQueues.push(newQueue);
-            this.projectFolders[this.projectFolders.findIndex((g) => g.id === result.importFolderId)].queues.push(newQueue.id);
           }
-        });
+          this._mergeProjectAndPersonalQueues();
+          await this._createOrAddToQueueFolder(result.folder, newQueue);
+        }
         if (result.selectedQueueScope === QueueScopes.PERSONAL) {
           this.personalQueuesStorageService.save(this.personalQueues);
-          this.personalFoldersStorageService.save(this.personalFolders);
         } else {
           this.projectQueuesStorageService.save(this.projectQueues);
-          this.projectFoldersStorageService.save(this.projectFolders);
         }
-        // this.myProjectAndPersonalQueuesStorageService.save(this.myProjectAndPersonalQueues);
-        this.myProjectAndPersonalFoldersStorageService.save(this.myProjectAndPersonalFolders);
-
         this._loadMySortedProjectQueues();
+        if (!this.currentQueue) {
+          this.loadQueue();
+        }
       }
     });
   }
@@ -488,7 +482,7 @@ export class QueuesComponent implements OnInit, OnDestroy {
   private async _createOrAddToQueueFolder(folder: QueueFolder, queue: Queue) {
     if (queue.scope === QueueScopes.PERSONAL) {
       if (this.personalFolders?.length) {
-        folder ? this.personalFolders.find((pg) => pg.id === folder.id).queues.push(queue.id) : this.personalFolders[0].queues.push(queue.id);
+        (this.personalFolders.find((pg) => pg.id === folder?.id) || this.personalFolders[0]).queues.push(queue.id);
         await this.personalFoldersStorageService.save(this.personalFolders);
       } else {
         this.personalFolders = [
@@ -504,7 +498,7 @@ export class QueuesComponent implements OnInit, OnDestroy {
       }
     } else {
       if (this.projectFolders?.length) {
-        folder ? this.projectFolders.find((pg) => pg.id === folder.id).queues.push(queue.id) : this.projectFolders[0].queues.push(queue.id);
+        (this.projectFolders.find((pg) => pg.id === folder?.id) || this.projectFolders[0]).queues.push(queue.id);
         await this.projectFoldersStorageService.save(this.projectFolders);
       } else {
         this.projectFolders = [
