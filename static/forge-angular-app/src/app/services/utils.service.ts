@@ -22,7 +22,8 @@ export class UtilsService {
   static mergeJiraDataKeys(properties: any, prefix: string) {
     let stringData = '';
     const orderedProperties = Object.keys(properties)
-      .sort()
+      // By chunk number: as text, `_10` sorts before `_2`.
+      .sort((a, b) => Number(a.split('_').pop()) - Number(b.split('_').pop()))
       .reduce((obj, key) => {
         obj[key] = properties[key];
         return obj;

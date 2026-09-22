@@ -72,15 +72,23 @@ export class StorageService {
   }
 
   async get(): Promise<any> {
-    let propertyArray = [...Array(5).keys()].map((i) => `${this.storageBaseKey}_${i}`);
-    let propertyArrayResponse;
-    if (this.storageContext === StorageContext.PROJECT) {
-      propertyArrayResponse = await JiraService.getProjectProperties(this.referenceKey, propertyArray);
-    } else if (this.storageContext === StorageContext.USER) {
-      propertyArrayResponse = await JiraService.getUserProperties(this.referenceKey, propertyArray);
-    } else if (this.storageContext === StorageContext.TICKET) {
-      propertyArrayResponse = await JiraService.getTicketProperties(this.referenceKey, propertyArray);
+    const properties = await this.getChunks(0, 5);
+    // save() chunks without limit, so a large value spans more than the first five.
+    const totalSize = properties[`${this.storageBaseKey}_0`]?.totalSize ?? 0;
+    if (totalSize > 5) {
+      Object.assign(properties, await this.getChunks(5, totalSize));
     }
-    return UtilsService.mergeJiraDataKeys(propertyArrayResponse, this.storageBaseKey);
+    return UtilsService.mergeJiraDataKeys(properties, this.storageBaseKey);
+  }
+
+  private async getChunks(from: number, to: number): Promise<any> {
+    const propertyArray = [...Array(to - from).keys()].map((i) => `${this.storageBaseKey}_${from + i}`);
+    if (this.storageContext === StorageContext.PROJECT) {
+      return JiraService.getProjectProperties(this.referenceKey, propertyArray);
+    } else if (this.storageContext === StorageContext.USER) {
+      return JiraService.getUserProperties(this.referenceKey, propertyArray);
+    } else if (this.storageContext === StorageContext.TICKET) {
+      return JiraService.getTicketProperties(this.referenceKey, propertyArray);
+    }
   }
 }
