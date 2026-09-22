@@ -253,7 +253,7 @@ export class QueuesComponent implements OnInit, OnDestroy {
     this.currentQueue = queue;
     this.currentFolder = folder || this.myProjectAndPersonalFolders.find((f) => f.queues.indexOf(queue?.id) > -1);
     if (queue) {
-      this.myProjectQueuesView.queueGridConfig[queue.id] = { gridOptions: { pageSize: 10 } };
+      this.myProjectQueuesView.queueGridConfig[queue.id] ||= { gridOptions: { pageSize: 10 } };
       this.myProjectQueuesView.currentQueueFolderId = this.currentFolder?.id;
       this.myProjectQueuesView.currentQueueId = queue.id;
       this.myProjectQueuesViewStorageService.save(this.myProjectQueuesView);
