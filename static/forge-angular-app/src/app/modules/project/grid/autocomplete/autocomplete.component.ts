@@ -22,6 +22,7 @@ export class AutocompleteComponent implements ICellEditorAngularComp {
   assignees: any[] = [];
   assigneesById: { [accountId: string]: any } = {};
   selectedItems: Array<any> = [];
+  private row: HTMLElement | null = null;
   dropdownSettings: IDropdownSettings = {
     singleSelection: true,
     idField: 'accountId',
@@ -56,6 +57,8 @@ export class AutocompleteComponent implements ICellEditorAngularComp {
   async startEditing(event: Event): Promise<void> {
     // Kept from the document: the dropdown's click-outside listener would otherwise close it on this same click.
     event.stopPropagation();
+    // ag-grid paints each row as its own layer, later rows over earlier ones, so the open list needs its row lifted.
+    this.row = (event.currentTarget as HTMLElement).closest('.ag-row');
     if (!this.assignees.length) {
       const jiraContext = await JiraService.getContext();
       const users = (await JiraService.getAssignees(jiraContext.jira.project.id)) || [];
@@ -69,6 +72,12 @@ export class AutocompleteComponent implements ICellEditorAngularComp {
       }, {});
     }
     this.editing = true;
+    this.row?.classList.add('assignee-editing');
+  }
+
+  stopEditing(): void {
+    this.editing = false;
+    this.row?.classList.remove('assignee-editing');
   }
 
   onAssigneeChange(selectedAssignee: any): void {

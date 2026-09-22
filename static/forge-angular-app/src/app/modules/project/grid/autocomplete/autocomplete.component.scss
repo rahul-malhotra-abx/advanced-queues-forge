@@ -26,6 +26,10 @@
     border: 0px solid #000000 !important;
     padding: 0px !important;
   }
+
+  .ag-row.assignee-editing {
+    z-index: 1;
+  }
 }
 
 

@@ -9,7 +9,7 @@
       </span>
     </div>
     <ng-multiselect-dropdown *ngIf="editing" id="two" [settings]="dropdownSettings" [data]="assignees"
-      [ngModel]="selectedItems" (onSelect)="onAssigneeChange($event)" (onDropDownClose)="editing = false">
+      [ngModel]="selectedItems" (onSelect)="onAssigneeChange($event)" (onDropDownClose)="stopEditing()">
       <ng-template #optionsTemplate let-item let-option="option" let-id="id" let-isSelected="isSelected">
         <div style="padding:1px 10px;margin-right:10px;right:2px;top:-2px; display: flex; align-items: center;">
           <img [src]="assigneesById[id]?.avatarUrl" style="width: 18px; margin: 0 20px;" />
