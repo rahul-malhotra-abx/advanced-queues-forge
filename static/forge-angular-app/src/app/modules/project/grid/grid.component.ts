@@ -78,7 +78,9 @@ export class GridComponent implements OnInit, OnChanges, OnDestroy {
     this.gridOptions.columnDefs.splice(1, this.gridOptions.columnDefs.length - 1);
     this.gridOptions.columnDefs.push(...UtilsService.getColumnDefinitionsForKeys(this.allColumns, this.queue.columns));
     this.loadingIssues = true;
-    this.loadingProgressBarWidth = 0;
+    // Not 0: the bar is striped and animated, and an empty one reads as stuck
+    // rather than as starting. A sliver until the count comes back.
+    this.loadingProgressBarWidth = 5;
     this.loadingMessage = 'Counting issues...';
     this.issues = [];
     const maxResults = DEFAULT_LIMITS.MAX_ALLOWED_JQL_RESULTS;
