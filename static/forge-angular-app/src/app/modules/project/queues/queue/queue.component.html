@@ -82,7 +82,23 @@
         </div>
       </label>
       <!-- The JQL builder itself: CodeMirror mounts into this host, see QueueComponent.jqlHost. -->
-      <div class="form-control" id="queue-jql" style="min-height: 4.5rem" #jqlHost></div>
+      <div
+        class="form-control jql-cm"
+        id="queue-jql"
+        style="min-height: 4.5rem"
+        [class.jql-invalid]="jqlErrors.length > 0 && !jqlFocused"
+        #jqlHost></div>
+      <div class="jql-footer d-flex align-items-center justify-content-end small mt-1">
+        <i *ngIf="jqlStatus === 'checking'" class="fa fa-spinner fa-spin text-muted me-2" title="Checking this JQL"></i>
+        <i *ngIf="jqlStatus === 'valid'" class="fa fa-check-circle text-success me-2" title="Valid JQL"></i>
+        <i *ngIf="jqlStatus === 'invalid'" class="fa fa-times-circle text-danger me-2" title="Invalid JQL"></i>
+        <span *ngIf="jqlMatchCount !== null" class="text-muted">{{ jqlMatchCount }} matching issues</span>
+      </div>
+      <div *ngIf="jqlErrors.length && !jqlFocused" class="jql-errors d-flex mt-2" role="alert">
+        <ul class="mb-0 ps-3">
+          <li *ngFor="let error of jqlErrors">{{ error }}</li>
+        </ul>
+      </div>
               <!-- Conditional display based on Saved Filters vs JQL -->
       <ng-container *ngIf="isSavedFilterSelected">
         <!-- Autocomplete for Saved Filters -->

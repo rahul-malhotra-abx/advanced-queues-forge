@@ -84,8 +84,73 @@ export class QueueComponent implements OnInit, OnDestroy {
       parent: host.nativeElement,
       doc: this.queue.jql || '',
       placeholder: 'JQL filter for queue.',
-      onChange: (jql) => (this.queue.jql = jql),
+      onChange: (jql) => this.onJqlChanged(jql),
+      onFocusChange: (focused) => this.onJqlFocusChanged(focused),
     });
+    this.validateJql();
+  }
+
+  /**
+   * The same feedback the Checklist editor gives, ported: a verdict while you
+   * type, Jira's own parse errors underneath, and how many issues the query
+   * matches. Without it the only sign of a bad query was an empty grid, and the
+   * only sign of a good one was the same empty grid on a query that matches
+   * nothing.
+   */
+  jqlErrors: string[] = [];
+  /** Errors are held back while the field has focus; half-written JQL is invalid by nature. */
+  jqlFocused = false;
+  jqlStatus: '' | 'checking' | 'valid' | 'invalid' = '';
+  jqlMatchCount: number | null = null;
+  private jqlValidateDebounce: any;
+  private lastValidated = '';
+
+  private onJqlChanged(jql: string) {
+    this.queue.jql = jql;
+    clearTimeout(this.jqlValidateDebounce);
+    // 600ms, as in Checklist: half-typed JQL is invalid by definition.
+    this.jqlValidateDebounce = setTimeout(() => this.validateJql(), 600);
+    const text = jql.trim();
+    // Spin from the keystroke, not from the request, or the marker shows a stale verdict.
+    this.jqlStatus = text && text !== this.lastValidated ? 'checking' : this.jqlStatus;
+    this.changeDetectorRef.detectChanges();
+  }
+
+  private onJqlFocusChanged(focused: boolean) {
+    this.jqlFocused = focused;
+    if (!focused) {
+      clearTimeout(this.jqlValidateDebounce);
+      this.validateJql();
+    }
+    this.changeDetectorRef.detectChanges();
+  }
+
+  private async validateJql() {
+    const text = (this.queue.jql ?? '').trim();
+    if (text === this.lastValidated) {
+      // The verdict stands; restore it rather than leaving a spinner nothing will resolve.
+      this.jqlStatus = text ? (this.jqlErrors.length ? 'invalid' : 'valid') : '';
+      this.changeDetectorRef.detectChanges();
+      return;
+    }
+    this.lastValidated = text;
+    const errors = await JqlAutocompleteService.validate(text);
+    // Drop a late answer about text the field no longer holds.
+    if ((this.queue.jql ?? '').trim() !== text) {
+      return;
+    }
+    this.jqlErrors = errors;
+    this.jqlStatus = text ? (errors.length ? 'invalid' : 'valid') : '';
+    this.jqlMatchCount = null;
+    this.changeDetectorRef.detectChanges();
+
+    if (!errors.length && text) {
+      const count = await JqlAutocompleteService.matchCount(text);
+      if ((this.queue.jql ?? '').trim() === text) {
+        this.jqlMatchCount = count;
+        this.changeDetectorRef.detectChanges();
+      }
+    }
   }
 
   constructor(
@@ -134,6 +199,7 @@ export class QueueComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    clearTimeout(this.jqlValidateDebounce);
     this.jqlEditor?.destroy();
   }
 
