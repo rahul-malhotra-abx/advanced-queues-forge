@@ -31,6 +31,10 @@
           <i class="fa fa-pencil-alt"></i>
           Edit Queues (Bulk)
         </a>
+        <a class="nav-link text-dark" *ngIf="isAdmin" routerLink="../settings">
+          <i class="fa fa-sliders-h"></i>
+          Settings
+        </a>
       </mat-menu>
     </div>
     <div class="queue-list">
@@ -63,11 +67,9 @@
             <h2 class="accordion-header" id="folder-{{ folder.id }}-heading">
               <button
                 class="accordion-button"
-                [ngClass]="{ collapsed: folder.collapsed || searchFilter.name !== '' }"
+                [ngClass]="{ collapsed: folder.collapsed && searchFilter.name === '' }"
                 type="button"
-                data-bs-toggle="collapse"
-                attr.data-bs-target="#folder-{{ folder.id }}"
-                aria-expanded="true"
+                [attr.aria-expanded]="!folder.collapsed || searchFilter.name !== ''"
                 attr.aria-controls="folder-{{ folder.id }}"
                 (click)="toggleFolderCollapse(folder)">
                 {{ folder.name }}
@@ -77,8 +79,7 @@
               id="folder-{{ folder.id }}"
               class="accordion-collapse collapse"
               [ngClass]="{ show: !folder.collapsed || searchFilter.name !== '' }"
-              attr.aria-labelledby="folder-{{ folder.id }}-heading"
-              attr.data-bs-parent="#folder-{{ folder.id }}-container">
+              attr.aria-labelledby="folder-{{ folder.id }}-heading">
               <div class="accordion-body">
                 <ul class="list-group" cdkDropList (cdkDropListDropped)="onQueueDrop($event, folderIndex)">
                   <ng-container *ngFor="let queue of mySortedProjectQueues[folder.id] | filterBy : searchFilter">
@@ -199,6 +200,7 @@
         [queue]="currentQueue"
         [queueGridOptions]="myProjectQueuesView.queueGridConfig[currentQueue.id].gridOptions"
         [allColumns]="jiraFields"
+        [dateColumnFormat]="dateColumnFormat"
         (myQueuesViewChanged)="myQueuesViewChanged($event)"></app-grid>
     </div>
   </div>

@@ -445,11 +445,9 @@ export class JiraService {
       data: JSON.stringify({ jql }),
       contentType: 'application/json',
     }).then((res: any) => res?.count, () => undefined);
-    if (jql.includes('ORDER BY')) {
-      jql = jql.replace(/ORDER BY .*/, 'ORDER BY created DESC');
-    } else {
-      jql += ' ORDER BY created DESC';
-    }
+    // The queue's own sort, in any case (JQL keywords are case-insensitive), is swapped for ours.
+    const filter = jql.replace(/\s*\border\s+by\b[\s\S]*$/i, '');
+    jql = `${filter} ORDER BY created DESC`;
     console.log('Modified JQL:', jql);
     const result: { issues: any[] } = await this.AP.request({
       url: `/rest/api/3/search/jql`,
@@ -464,11 +462,7 @@ export class JiraService {
 
     let result2: { issues: any[] };
     if (lastUpdated) {
-      if (jql.includes('ORDER BY')) {
-        jql = jql.replace(/ORDER BY .*/, 'ORDER BY updated DESC');
-      } else {
-        jql += ' ORDER BY updated DESC';
-      }
+      jql = `${filter} ORDER BY updated DESC`;
       result2 = await this.AP.request({
         url: `/rest/api/3/search/jql`,
         type: 'POST',

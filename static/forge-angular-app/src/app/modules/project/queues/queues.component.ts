@@ -22,6 +22,7 @@ import { StorageContext } from 'src/app/models/storage.context.enum';
 import { DataStorageKeys } from 'src/app/models/data.storage.keys.model';
 import { DEFAULT_QUEUE_VIEW_SETTINGS, QueueViewSettings } from 'src/app/models/default.queue-view-settings';
 import { DefaultQueueSortConfig } from 'src/app/models/default.queue.sort.config';
+import { DefaultProjectAdminSettings } from 'src/app/models/default.project.admin.settings.model';
 
 @Component({
   selector: 'app-queues',
@@ -64,6 +65,7 @@ export class QueuesComponent implements OnInit, OnDestroy {
   queueListConfig: QueueListConfig;
   timeFormat = format;
   jiraFields: any[];
+  dateColumnFormat: string;
   QueuePriorities = QueuePriorities;
   QueueScopes = QueueScopes;
   searchFilter = { name: '' };
@@ -82,6 +84,8 @@ export class QueuesComponent implements OnInit, OnDestroy {
     this.currentUser = await JiraService.getCurrentJiraUser();
     this.currentUserJiraGroups = await JiraService.getUserGroups(this.currentUser.accountId);
     this.jiraFields = await JiraService.getJiraFields();
+    this.dateColumnFormat =
+      (await JiraService.getProjectSettings(this.projectIdOrKey))?.dateColumnFormat || DefaultProjectAdminSettings.dateColumnFormat;
 
     // Load PROJECT queues and folders
     this.projectFoldersStorageService = new StorageService(StorageContext.PROJECT, this.projectIdOrKey, DataStorageKeys.PROJECT_FOLDERS);
@@ -230,7 +234,11 @@ export class QueuesComponent implements OnInit, OnDestroy {
 
   async refreshQueueIssueCount() {
     for (const queue of this.myProjectAndPersonalQueues) {
-      queue.lastRefreshedData = await JiraService.getCountAndLastIssueForJQL(queue.jql, true);
+      // Caught per queue: one whose JQL Jira rejects would otherwise end the pass for every queue after it.
+      queue.lastRefreshedData = await JiraService.getCountAndLastIssueForJQL(queue.jql, true).catch((error) => {
+        console.warn(`Could not refresh queue "${queue.name}"`, error);
+        return undefined;
+      });
       queue.lastCreatedDateMilliSeconds = queue.lastRefreshedData?.lastCreated
         ? new Date(queue.lastRefreshedData.lastCreated.fields.created).getTime()
         : 0;
@@ -249,7 +257,7 @@ export class QueuesComponent implements OnInit, OnDestroy {
     this.currentQueue = queue;
     this.currentFolder = folder || this.myProjectAndPersonalFolders.find((f) => f.queues.indexOf(queue?.id) > -1);
     if (queue) {
-      this.myProjectQueuesView.queueGridConfig[queue.id] = { gridOptions: { pageSize: 10 } };
+      this.myProjectQueuesView.queueGridConfig[queue.id] ||= { gridOptions: { pageSize: 10 } };
       this.myProjectQueuesView.currentQueueFolderId = this.currentFolder?.id;
       this.myProjectQueuesView.currentQueueId = queue.id;
       this.myProjectQueuesViewStorageService.save(this.myProjectQueuesView);

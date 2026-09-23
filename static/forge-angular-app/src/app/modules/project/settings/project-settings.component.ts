@@ -40,6 +40,21 @@ export class ProjectSettingsComponent implements OnInit {
   async ngOnInit() {
     this.projectIdOrKey = this.route.parent.params['value'].id;
     const storageSettings = (await JiraService.getProjectSettings(this.projectIdOrKey)) || {};
-    this.projectSettings = Object.assign(DefaultProjectAdminSettings, storageSettings);
+    this.projectSettings = { ...DefaultProjectAdminSettings, ...storageSettings };
+  }
+
+  async saveDateFormat(dateColumnFormat: string) {
+    this.projectSettings.dateColumnFormat = dateColumnFormat;
+    try {
+      await JiraService.saveProjectSettings(this.projectSettings, this.projectIdOrKey);
+    } catch (error) {
+      console.error('Failed to save project settings', error);
+      JiraService.showNotification(
+        'Changes not saved',
+        'Jira rejected the change, so the date format has not been stored.',
+        'error',
+        'manual'
+      );
+    }
   }
 }
