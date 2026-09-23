@@ -35,7 +35,7 @@
         </td>
         <td>
           <img [src]="project.lead.avatarUrls['24x24']" width="20"/> &nbsp;
-          <a [href]="UtilService.getParentDomain() + '/people/' + project.lead.accountId"
+          <a href="javascript:void(0)" (click)="openLead($event, project.lead.accountId)"
              target="_blank">{{project.lead.displayName}}</a>
         </td>
         <td>

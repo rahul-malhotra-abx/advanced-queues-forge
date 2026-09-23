@@ -438,13 +438,20 @@ export class JiraService {
   }
 
   static async getCountAndLastIssueForJQL(jql: string, lastUpdated = false) {
+    // search/jql no longer returns `total`. Unbounded JQL is refused here; its badge stays blank.
+    const count: number | undefined = await this.AP.request({
+      url: '/rest/api/3/search/approximate-count',
+      type: 'POST',
+      data: JSON.stringify({ jql }),
+      contentType: 'application/json',
+    }).then((res: any) => res?.count, () => undefined);
     if (jql.includes('ORDER BY')) {
       jql = jql.replace(/ORDER BY .*/, 'ORDER BY created DESC');
     } else {
       jql += ' ORDER BY created DESC';
     }
     console.log('Modified JQL:', jql);
-    const result: { total: number; issues: any[] } = await this.AP.request({
+    const result: { issues: any[] } = await this.AP.request({
       url: `/rest/api/3/search/jql`,
       type: 'POST',
       data: JSON.stringify({
@@ -455,7 +462,7 @@ export class JiraService {
       contentType: 'application/json',
     });
 
-    let result2: { total: number; issues: any[] };
+    let result2: { issues: any[] };
     if (lastUpdated) {
       if (jql.includes('ORDER BY')) {
         jql = jql.replace(/ORDER BY .*/, 'ORDER BY updated DESC');
@@ -476,7 +483,7 @@ export class JiraService {
     return {
       lastCreated: result.issues?.[0],
       lastUpdated: result2?.issues?.[0],
-      count: result.total,
+      count,
     };
   }
 

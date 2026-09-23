@@ -4,6 +4,7 @@ import {animate, style, transition, trigger} from '@angular/animations';
 import {ENVIRONMENT} from '../../../environment';
 import {DataStorageKeys} from '../../../models/data.storage.keys.model';
 import {DefaultProjectAdminSettings} from '../../../models/default.project.admin.settings.model';
+import {router} from '@forge/bridge';
 import {UtilsService} from '../../../services/utils.service';
 
 @Component({
@@ -64,4 +65,17 @@ export class ProjectEnablementComponent implements OnInit {
     const currentProject = this.projects[index];
     await JiraService.saveProjectSettings(currentProject.adminSettings, currentProject.id);
   }
+
+  /**
+   * Open a project lead's profile through the bridge.
+   *
+   * Was an absolute `href` built from `getParentDomain()`, which cannot resolve
+   * the customer's Jira host from inside a Forge frame.
+   */
+  openLead(event: Event, accountId: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+    router.open(`/people/${accountId}`);
+  }
+
 }

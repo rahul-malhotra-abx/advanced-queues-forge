@@ -6,6 +6,7 @@ import { Observable } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { QueueScopes } from 'src/app/models/default.queue.model';
+import { QueueFolder } from 'src/app/models/default.folder.model';
 import { alert } from 'basic-modals';
 
 @Component({
@@ -27,14 +28,14 @@ export class ImportQueuesComponent implements OnInit {
   currentProjectQueues: any[];
   /** The selected project has no service desk, so there are no native queues to import. */
   noServiceDeskForProject = false;
-  groups: any[];
-  importIntoGroupId: any;
+  folders: QueueFolder[];
+  importIntoFolder: QueueFolder;
   isAdmin = false;
   QueueScopes = QueueScopes;
   selectedQueueScope = QueueScopes.PERSONAL;
 
   constructor(private dialogRef: MatDialogRef<ImportQueuesComponent>, @Inject(MAT_DIALOG_DATA) public dataFromPatent) {
-    this.groups = dataFromPatent.groups;
+    this.folders = dataFromPatent.folders;
   }
 
   async ngOnInit() {
@@ -49,7 +50,6 @@ export class ImportQueuesComponent implements OnInit {
       map((value) => (typeof value === 'string' ? value : value.name)),
       map((name) => (name ? this._filter(name) : this.projects.slice()))
     );
-    this.importIntoGroupId = this.groups[0]?.id;
 
     const advancedQueueAdminRole = ['SYSTEM_ADMIN', 'ADMINISTER', 'ADMINISTER_PROJECTS'];
     const userPermissions = await JiraService.getUserPermissions(advancedQueueAdminRole);
@@ -102,7 +102,7 @@ export class ImportQueuesComponent implements OnInit {
     }
 
     this.dialogRef.close({
-      importGroupId: this.importIntoGroupId,
+      folder: this.importIntoFolder,
       selectedQueueScope: this.selectedQueueScope,
       queues: this.currentProjectQueues.filter((cpq) => cpq.selected),
     });

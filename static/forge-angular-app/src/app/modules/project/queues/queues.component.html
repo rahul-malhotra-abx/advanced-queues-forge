@@ -86,7 +86,7 @@
                       class="list-group-item"
                       cdkDrag
                       cdkDragLockAxis="y"
-                      [ngClass]="{ active: folder.name === currentFolder.name && queue.id === currentQueue?.id }">
+                      [ngClass]="{ active: folder.name === currentFolder?.name && queue.id === currentQueue?.id }">
                       <div class="d-flex">
                         <span [ngbTooltip]="queueSorting.sortBy === 'USER_SORT' ? 'Drag to reorder' : 'To Sort Queues, Please change to User Sort'">
                           <i
@@ -164,8 +164,8 @@
       <div class="ms-auto pe-3">
         <a
           class="btn btn-link text-decoration-none me-3"
-          target="_blank"
-          [href]="UtilsService.getParentDomain() + '/issues/?jql=' + currentQueue.jql">
+          href="javascript:void(0)"
+          (click)="openInIssueNavigator($event)">
           View in issue navigator
         </a>
         <span class="ms-auto my-auto cursor-pointer text-dark" [matMenuTriggerFor]="additionalQueueMenu">

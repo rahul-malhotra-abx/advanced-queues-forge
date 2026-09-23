@@ -8,6 +8,7 @@ import { confirm } from 'basic-modals';
 import { ImportQueuesComponent } from './import-queues/import-queues.component';
 import { QueueListViewComponent } from './queue-list-view/queue-list-view.component';
 import { format } from 'timeago.js';
+import { router } from '@forge/bridge';
 import { JiraService } from '../../../services/jira.service';
 import { DefaultQueues, Queue, QueuePriorities, QueueScopes } from '../../../models/default.queue.model';
 import { AddEditFoldersComponent } from './add-edit-folders/add-edit-folders.component';
@@ -156,6 +157,24 @@ export class QueuesComponent implements OnInit, OnDestroy {
     await this.refreshQueueIssueCount();
   }
 
+  /**
+   * Open the current queue's JQL in Jira's issue navigator.
+   *
+   * `router.open` with a product-relative path, not an `href`. The old link
+   * built an absolute URL from `getParentDomain()`, which resolves the host
+   * through `xdm_e` / `ancestorOrigins` / `AP._hostOrigin` — none of which give
+   * the customer's Jira origin from inside a Forge frame.
+   *
+   * The JQL is ENCODED, which the Connect original did not do: a query holding
+   * a space, a quote or an `&` produced a mangled navigator URL
+   * (advanced-queues-connect-qa DEFECTS BUG-10).
+   */
+  openInIssueNavigator(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    router.open(`/issues/?jql=${encodeURIComponent(this.currentQueue.jql)}`);
+  }
+
   ngOnDestroy() {
     clearInterval(this.refreshInterval);
   }
@@ -223,16 +242,18 @@ export class QueuesComponent implements OnInit, OnDestroy {
   }
 
   loadQueue(folder?: QueueFolder, queue?: Queue) {
-    if (!folder && !queue) {
+    if (!queue) {
       queue = this.myProjectAndPersonalQueues[0];
-      folder = this.myProjectAndPersonalFolders.find((f) => f.queues.indexOf(queue.id) > -1);
+      folder = undefined;
     }
-    this.currentFolder = folder;
     this.currentQueue = queue;
-    this.myProjectQueuesView.queueGridConfig[this.currentQueue.id] = { gridOptions: { pageSize: 10 } };
-    this.myProjectQueuesView.currentQueueFolderId = folder.id;
-    this.myProjectQueuesView.currentQueueId = queue.id;
-    this.myProjectQueuesViewStorageService.save(this.myProjectQueuesView);
+    this.currentFolder = folder || this.myProjectAndPersonalFolders.find((f) => f.queues.indexOf(queue?.id) > -1);
+    if (queue) {
+      this.myProjectQueuesView.queueGridConfig[queue.id] = { gridOptions: { pageSize: 10 } };
+      this.myProjectQueuesView.currentQueueFolderId = this.currentFolder?.id;
+      this.myProjectQueuesView.currentQueueId = queue.id;
+      this.myProjectQueuesViewStorageService.save(this.myProjectQueuesView);
+    }
     this.changeDetectorRef.detectChanges();
   }
 
@@ -273,14 +294,9 @@ export class QueuesComponent implements OnInit, OnDestroy {
       const currentQueueIndex = this.myProjectAndPersonalQueues.findIndex((pq) => pq.id === this.currentQueue.id);
       this.myProjectAndPersonalQueues.splice(currentQueueIndex, 1);
       // this.myProjectAndPersonalQueuesStorageService.save(this.myProjectAndPersonalQueues);
-      this.currentFolder.queues.splice(
-        this.currentFolder.queues.findIndex((q) => q.id === this.currentQueue.id),
-        1
-      );
+      this._cleanFolderQueues();
       this._loadMySortedProjectQueues();
-      this.currentQueue = this.myProjectAndPersonalQueues.length ? this.myProjectAndPersonalQueues[0] : undefined;
-      this.currentFolder = this.myProjectAndPersonalFolders.find((mpg) => mpg.queues.indexOf(this.currentQueue.id) > -1);
-      this.loadQueue(this.currentFolder, this.currentQueue);
+      this.loadQueue();
     }
   }
 
@@ -289,13 +305,13 @@ export class QueuesComponent implements OnInit, OnDestroy {
       width: '500px',
       data: {
         projectIdOrKey: this.projectIdOrKey,
-        folders: UtilsService.deepCopy(this.projectFolders),
+        folders: UtilsService.deepCopy(this.myProjectAndPersonalFolders),
       },
     });
 
     dialogRef.afterClosed().subscribe(async (result) => {
       if (result) {
-        result.queues.map((queue: any) => {
+        for (const queue of result.queues) {
           // Returns a JIRA Queue.
           const newQueue = {
             name: queue.name,
@@ -305,29 +321,23 @@ export class QueuesComponent implements OnInit, OnDestroy {
             scope: result.selectedQueueScope || QueueScopes.PROJECT,
             id: UtilsService.uuidv4(),
           };
-          this.myProjectAndPersonalQueues.push(newQueue);
-          this.myProjectAndPersonalFolders[this.myProjectAndPersonalFolders.findIndex((g) => g.id === result.importFolderId)].queues.push(
-            newQueue.id
-          );
-          if (result.selectedQueueScope === QueueScopes.PERSONAL) {
+          if (newQueue.scope === QueueScopes.PERSONAL) {
             this.personalQueues.push(newQueue);
-            this.personalFolders[this.personalFolders.findIndex((g) => g.id === result.importFolderId)].queues.push(newQueue.id);
           } else {
             this.projectQueues.push(newQueue);
-            this.projectFolders[this.projectFolders.findIndex((g) => g.id === result.importFolderId)].queues.push(newQueue.id);
           }
-        });
+          this._mergeProjectAndPersonalQueues();
+          await this._createOrAddToQueueFolder(result.folder, newQueue);
+        }
         if (result.selectedQueueScope === QueueScopes.PERSONAL) {
           this.personalQueuesStorageService.save(this.personalQueues);
-          this.personalFoldersStorageService.save(this.personalFolders);
         } else {
           this.projectQueuesStorageService.save(this.projectQueues);
-          this.projectFoldersStorageService.save(this.projectFolders);
         }
-        // this.myProjectAndPersonalQueuesStorageService.save(this.myProjectAndPersonalQueues);
-        this.myProjectAndPersonalFoldersStorageService.save(this.myProjectAndPersonalFolders);
-
         this._loadMySortedProjectQueues();
+        if (!this.currentQueue) {
+          this.loadQueue();
+        }
       }
     });
   }
@@ -472,7 +482,7 @@ export class QueuesComponent implements OnInit, OnDestroy {
   private async _createOrAddToQueueFolder(folder: QueueFolder, queue: Queue) {
     if (queue.scope === QueueScopes.PERSONAL) {
       if (this.personalFolders?.length) {
-        folder ? this.personalFolders.find((pg) => pg.id === folder.id).queues.push(queue.id) : this.personalFolders[0].queues.push(queue.id);
+        (this.personalFolders.find((pg) => pg.id === folder?.id) || this.personalFolders[0]).queues.push(queue.id);
         await this.personalFoldersStorageService.save(this.personalFolders);
       } else {
         this.personalFolders = [
@@ -488,7 +498,7 @@ export class QueuesComponent implements OnInit, OnDestroy {
       }
     } else {
       if (this.projectFolders?.length) {
-        folder ? this.projectFolders.find((pg) => pg.id === folder.id).queues.push(queue.id) : this.projectFolders[0].queues.push(queue.id);
+        (this.projectFolders.find((pg) => pg.id === folder?.id) || this.projectFolders[0]).queues.push(queue.id);
         await this.projectFoldersStorageService.save(this.projectFolders);
       } else {
         this.projectFolders = [
