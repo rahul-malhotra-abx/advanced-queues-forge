@@ -34,12 +34,15 @@ export class ImportQueuesComponent implements OnInit {
   QueueScopes = QueueScopes;
   selectedQueueScope = QueueScopes.PERSONAL;
 
-  /** Names already in this project's rail, lower-cased, for the already-imported mark. */
-  existingNames: Set<string>;
+  /** `<project id>:<native queue id>` for every queue in the rail that came from an import. */
+  importedSources: Set<string>;
+  sourceProjectId: string;
 
   constructor(private dialogRef: MatDialogRef<ImportQueuesComponent>, @Inject(MAT_DIALOG_DATA) public dataFromPatent) {
     this.folders = dataFromPatent.folders;
-    this.existingNames = new Set((dataFromPatent.queues ?? []).map((q: Queue) => q.name?.trim().toLowerCase()));
+    this.importedSources = new Set(
+      (dataFromPatent.queues ?? []).map((q: Queue & { importedFrom?: string }) => q.importedFrom).filter(Boolean)
+    );
   }
 
   async ngOnInit() {
@@ -83,13 +86,17 @@ export class ImportQueuesComponent implements OnInit {
       return;
     }
     this.noServiceDeskForProject = false;
+    this.sourceProjectId = projectId;
     this.currentProjectQueues = queues.values;
     // BUG-14: nothing checked whether a native queue had been imported before,
-    // so importing twice left two identical rows. Matched on name, which is
-    // what the import writes; the native id is not kept.
+    // so importing twice left two identical rows. Matched on the source queue
+    // rather than on the name: the app ships a project queue called "All Open"
+    // and JSM's is "All open", so a name match refused the commonest import
+    // there is. Queues imported before this shipped carry no source and are
+    // not marked; importing one again marks it from then on.
     this.currentProjectQueues.map((cpq) => {
       cpq.selected = false;
-      cpq.alreadyImported = this.existingNames.has(cpq.name?.trim().toLowerCase());
+      cpq.alreadyImported = this.importedSources.has(`${projectId}:${cpq.id}`);
     });
   }
 
@@ -114,6 +121,7 @@ export class ImportQueuesComponent implements OnInit {
     this.dialogRef.close({
       folder: this.importIntoFolder,
       selectedQueueScope: this.selectedQueueScope,
+      projectId: this.sourceProjectId,
       // Already-imported rows cannot be ticked; filtered again so that a stale
       // tick from before a project switch cannot slip one through.
       queues: this.currentProjectQueues.filter((cpq) => cpq.selected && !cpq.alreadyImported),

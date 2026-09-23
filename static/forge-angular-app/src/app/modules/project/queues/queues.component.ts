@@ -351,6 +351,11 @@ export class QueuesComponent implements OnInit, OnDestroy {
             priority: QueuePriorities.MEDIUM,
             scope: result.selectedQueueScope || QueueScopes.PROJECT,
             id: UtilsService.uuidv4(),
+            // BUG-14: which native queue this came from, so the picker can say
+            // it has been imported already. Names cannot do that job: the app
+            // ships a project queue called "All Open" and JSM's is "All open",
+            // so matching on name refused the commonest import there is.
+            importedFrom: `${result.projectId ?? ''}:${queue.id}`,
           };
           if (newQueue.scope === QueueScopes.PERSONAL) {
             this.personalQueues.push(newQueue);
