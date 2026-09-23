@@ -33,6 +33,8 @@
     [gridOptions]="gridOptions"
     [enableCellChangeFlash]="true"
     (gridReady)="onGridReady($event)"
+    (firstDataRendered)="onFirstDataRendered()"
+    (gridSizeChanged)="onGridSizeChanged()"
     [domLayout]="'normal'"
     (columnResized)="onColumnResized($event)"
     (columnMoved)="onColumnMoved($event)"

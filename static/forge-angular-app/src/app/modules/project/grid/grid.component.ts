@@ -1,5 +1,6 @@
 import {
   ChangeDetectorRef,
+  ElementRef,
   EventEmitter,
   Component,
   Input,
@@ -28,6 +29,12 @@ import { DEFAULT_LIMITS } from 'src/app/models/default.limits';
   encapsulation: ViewEncapsulation.None,
 })
 export class GridComponent implements OnInit, OnChanges, OnDestroy {
+  /** An overflow smaller than a scrollbar is rounding, not a wide set of columns. */
+  private static readonly FIT_TOLERANCE_PX = 16;
+
+  /** Set once the user drags a column edge: from then on their widths stand. */
+  private userSizedColumns = false;
+
   @Input() queue: Queue;
   @Input() queueGridOptions: any;
   @Input() allColumns: any[];
@@ -54,7 +61,7 @@ export class GridComponent implements OnInit, OnChanges, OnDestroy {
   columnOnGridResized: Subject<any[]> = new Subject<any[]>();
   columnOnGridSortingChanged: Subject<any[]> = new Subject<any[]>();
 
-  constructor(private changeDetectorRef: ChangeDetectorRef, public gridService: GridService) {
+  constructor(private changeDetectorRef: ChangeDetectorRef, private elementRef: ElementRef, public gridService: GridService) {
     this.columnOnGridMoved.pipe(debounceTime(3000)).subscribe(() => this.persistQueueViewSettings());
     this.columnOnGridResized.pipe(debounceTime(3000)).subscribe(() => this.persistQueueViewSettings());
     this.columnOnGridSortingChanged.pipe(debounceTime(3000)).subscribe(() => this.persistQueueViewSettings());
@@ -75,6 +82,8 @@ export class GridComponent implements OnInit, OnChanges, OnDestroy {
 
   async search() {
     this.queueGridOptions = this.queueGridOptions || { pageSize: 10 };
+    // Widths belong to a queue, so the latch is released when one is opened.
+    this.userSizedColumns = false;
     this.gridOptions = this.gridService.getGridOptions();
     this.gridOptions.context = { dateColumnFormat: this.dateColumnFormat };
     this.gridOptions.columnDefs.splice(1, this.gridOptions.columnDefs.length - 1);
@@ -183,10 +192,72 @@ export class GridComponent implements OnInit, OnChanges, OnDestroy {
         state: this.queueGridOptions.columnState,
         applyOrder: false,
       });
-    } else {
-      params.columnApi.autoSizeAllColumns();
     }
+    // Nothing in the `else`: the columns carry their own widths, and a text
+    // column carries the flex that absorbs what is left over. autoSizeAllColumns
+    // used to run here, which sizes every column to its content AND clears
+    // flex, which is how the grid ended up narrow with a band of empty space
+    // beside it (BUG-34, BUG-36).
     this.gridApi.paginationSetPageSize(Number(this.queueGridOptions.pageSize));
+    this.stretchColumnsToFit();
+  }
+
+  /** Widths settle once there are rows to measure, so fit again then. */
+  onFirstDataRendered() {
+    this.stretchColumnsToFit();
+  }
+
+  /** The pane changes width when the queue rail is hidden or the window resizes. */
+  onGridSizeChanged() {
+    this.stretchColumnsToFit();
+  }
+
+  /**
+   * Fill the width when there is room to, and leave the grid alone when there
+   * is not.
+   *
+   * `sizeColumnsToFit()` on its own also SHRINKS a wide set of columns into the
+   * viewport, which is the opposite of what a queue with many columns wants:
+   * those should keep their width and scroll. So it runs only while the columns
+   * leave space unused.
+   */
+  private stretchColumnsToFit(): void {
+    const columnApi = this.gridOptions?.columnApi;
+    if (!this.gridApi || !columnApi) {
+      return;
+    }
+    // Deferred a frame: called from gridReady the pane is still settling, and
+    // fitting to a width that then changes leaves the columns a few pixels
+    // over, which is a scrollbar for nothing.
+    setTimeout(() => {
+      const viewport: HTMLElement = this.elementRef.nativeElement.querySelector('.ag-center-cols-viewport');
+      if (!viewport?.clientWidth || this.userSizedColumns) {
+        return;
+      }
+      const displayed = columnApi.getAllDisplayedColumns();
+      // A flex column already absorbs the spare width, and fitting on top of it
+      // redistributes everything proportionally, which undoes the per-type
+      // widths: a status column came out at 215px next to a 586px summary.
+      if (displayed.some((column: any) => column.getColDef?.()?.flex)) {
+        return;
+      }
+      const used = displayed.reduce((total: number, column: any) => total + column.getActualWidth(), 0);
+      // Room to spare, or a small overshoot this fit is what produced: both are
+      // ours to correct. A set that overflows by more than a scrollbar's width
+      // is the user's own columns, and those keep their width and scroll.
+      if (used < viewport.clientWidth || used - viewport.clientWidth <= GridComponent.FIT_TOLERANCE_PX) {
+        this.gridApi.sizeColumnsToFit();
+        // sizeColumnsToFit measures the grid body, which is 2px wider than the
+        // centre viewport (measured). Two pixels is still a horizontal
+        // scrollbar, so the last column gives them back.
+        const over = viewport.scrollWidth - viewport.clientWidth;
+        const columns = columnApi.getAllDisplayedColumns();
+        const last = columns[columns.length - 1];
+        if (over > 0 && over <= GridComponent.FIT_TOLERANCE_PX && last) {
+          columnApi.setColumnWidth(last, last.getActualWidth() - over);
+        }
+      }
+    });
   }
 
   onFilterTextBoxChanged(event: any) {
@@ -194,6 +265,18 @@ export class GridComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   async onColumnResized(params: any) {
+    // Only a width the USER chose. A fit or an autosize is this window's
+    // arithmetic, and storing it would pin one machine's width into a property
+    // every other machine then reads back.
+    //
+    // `uiColumnDragged` is the header-edge drag, measured: ag-grid's
+    // ResizeFeature reports it under that name, not `uiColumnResized`.
+    if (params?.source !== 'uiColumnDragged') {
+      return;
+    }
+    // Their widths win from here: an automatic fit would spring back the column
+    // they just dragged.
+    this.userSizedColumns = true;
     this.queueGridOptions.columnState = this.gridOptions.columnApi.getColumnState();
     this.columnOnGridResized.next();
   }

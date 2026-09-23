@@ -176,9 +176,12 @@ export class UtilsService {
               valueKey: columnType.valueKey,
               headerClass: '',
               maxWidth: 700,
-              minWidth: 100,
               resizable: true,
-              width: 150,
+              // From the allow-list, so a date is not as wide as a summary. A
+              // flex column absorbs the space the fixed ones leave; one without
+              // either falls back to the old flat width (BUG-36).
+              minWidth: columnType.minWidth ?? 100,
+              ...(columnType.flex ? { flex: columnType.flex } : { width: columnType.width ?? 150 }),
               filter: columnType.filter,
               isJiraCustomField: true,
             };
