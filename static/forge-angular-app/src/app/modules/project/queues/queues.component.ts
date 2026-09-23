@@ -93,7 +93,13 @@ export class QueuesComponent implements OnInit, OnDestroy {
     this.projectFolders = (await this.projectFoldersStorageService.get()) || UtilsService.deepCopy(DefaultQueueFolders);
 
     this.projectQueuesStorageService = new StorageService(StorageContext.PROJECT, this.projectIdOrKey, DataStorageKeys.PROJECT_QUEUES);
-    this.projectQueues = QueuesComponent._dropStoredRefreshData((await this.projectQueuesStorageService.get()) || DefaultQueues);
+    // deepCopy, like the folders load beside it: a project with nothing stored
+    // used to take the shipped array BY REFERENCE, so renaming or deleting a
+    // queue edited the module-level constant and the next project loaded in the
+    // same session inherited it.
+    this.projectQueues = QueuesComponent._dropStoredRefreshData(
+      (await this.projectQueuesStorageService.get()) || UtilsService.deepCopy(DefaultQueues)
+    );
 
     // Load PERSONAL queues and folders
     this.personalFoldersStorageService = new StorageService(
