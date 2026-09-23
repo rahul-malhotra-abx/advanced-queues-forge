@@ -172,19 +172,31 @@
         <span class="ms-auto my-auto cursor-pointer text-dark" [matMenuTriggerFor]="additionalQueueMenu">
           <i ngbTooltip="Queue actions" class="fa fa-ellipsis-h"></i>
         </span>
+        <!--
+          BUG-07: this menu offered Edit, Clone and Delete on a PROJECT queue to
+          anyone, while the rail's own pencil was greyed out for the same queue.
+          Measured as a non-admin: Delete emptied the rail, Jira refused the
+          write, and the queue came back on reload. Offered here only to someone
+          who can carry it out; a personal queue is always the viewer's own.
+        -->
         <mat-menu class="queue-additional-menu" #additionalQueueMenu="matMenu" xPosition="before">
-          <a class="nav-link text-dark" (click)="addEditQueue(currentQueue)">
-            <i class="fa fa-pencil-alt"></i>
-            Edit Queue
-          </a>
-          <a class="nav-link text-dark" (click)="cloneCurrentQueue()">
-            <i class="far fa-copy"></i>
-            Clone Queue
-          </a>
-          <a class="nav-link text-dark" (click)="deleteCurrentQueue()">
-            <i class="fa fa-trash-alt text-danger"></i>
-            Delete Queue
-          </a>
+          <ng-container *ngIf="isAdmin || currentQueue.scope !== QueueScopes.PROJECT">
+            <a class="nav-link text-dark" (click)="addEditQueue(currentQueue)">
+              <i class="fa fa-pencil-alt"></i>
+              Edit Queue
+            </a>
+            <a class="nav-link text-dark" (click)="cloneCurrentQueue()">
+              <i class="far fa-copy"></i>
+              Clone Queue
+            </a>
+            <a class="nav-link text-dark" (click)="deleteCurrentQueue()">
+              <i class="fa fa-trash-alt text-danger"></i>
+              Delete Queue
+            </a>
+          </ng-container>
+          <span class="nav-link text-muted small" *ngIf="!isAdmin && currentQueue.scope === QueueScopes.PROJECT">
+            Only a project administrator can change this queue.
+          </span>
         </mat-menu>
       </div>
     </div>
