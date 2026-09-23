@@ -114,13 +114,18 @@ export class QueueComponent implements OnInit, OnDestroy {
     this.availableJiraGroups = await JiraService.getGroups('');
     this.selectedJiraGroups = this.queue.visibilityGroups;
 
-    this.queue.scope = this.queue.scope || this.QueueScopes.PROJECT;
     this.queue.priority = this.queue.priority || this.priorityList[2];
     const advancedQueueAdminRole = ['SYSTEM_ADMIN', 'ADMINISTER', 'ADMINISTER_PROJECTS'];
     const userPermissions = await JiraService.getUserPermissions(advancedQueueAdminRole);
     if (UtilsService.hasOneOfPermission(advancedQueueAdminRole, userPermissions)) {
       this.isAdmin = true;
     }
+    // AFTER the permission check, and following it: a new queue used to start on
+    // Project for everyone, including someone the select then refuses to let
+    // choose Project. Measured as a non-admin: the queue is created, the rail
+    // shows it, and Jira refuses the project property write, so the work is
+    // lost and the only sign is an error flag (BUG-08).
+    this.queue.scope = this.queue.scope || (this.isAdmin ? this.QueueScopes.PROJECT : this.QueueScopes.PERSONAL);
 
     this.pageLoaded = true;
     // Both chunks are ~300ms; fetched while the user reads the form, not on the first keystroke.
