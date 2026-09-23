@@ -13,7 +13,7 @@
       <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn">
         <mat-option *ngFor="let option of filteredOptions | async" [value]="option">
           {{ option.name }}
-          <span class="small text-muted">{{ '${' + option.key + '}' }}</span>
+          <span class="small text-muted">({{ option.key }})</span>
         </mat-option>
       </mat-autocomplete>
     </div>

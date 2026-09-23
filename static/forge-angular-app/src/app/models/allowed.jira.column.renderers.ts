@@ -64,6 +64,13 @@ export const ALLOWED_JIRA_COLUMN_RENDERERS = {
     renderer: 'jiraDescriptionRenderer',
     filter: 'agTextColumnFilter'
   },
+  // Rich text behind a `string` schema, so it needs an entry of its own to reach the rich-text renderer.
+  environment: {
+    fieldKey: 'id',
+    headerKey: 'name',
+    renderer: 'jiraRichTextRenderer',
+    filter: 'agTextColumnFilter'
+  },
   datetime: {
     fieldKey: 'id',
     headerKey: 'name',

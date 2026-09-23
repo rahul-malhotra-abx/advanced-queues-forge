@@ -71,7 +71,7 @@ export class GridService {
     rowDragManaged: true,
     suppressMoveWhenRowDragging: true,
     suppressHorizontalScroll: false,
-    suppressRowClickSelect: true,
+    suppressRowClickSelection: true,
     paginationPageSize: 10,
     pagination: true,
   };
