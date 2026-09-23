@@ -43,6 +43,8 @@ export class GridComponent implements OnInit, OnChanges, OnDestroy {
   issues: any[];
   loadingIssues = false;
   loadingProgressBarWidth: any;
+  /** The queue whose row cap has already been reported, so it is reported once. */
+  private cappedWarnedFor: string;
   loadingMessage: string;
   availableColumns: any[];
   GRID_PAGE_SIZES = [10, 20, 50, 100, 200, 500];
@@ -122,9 +124,11 @@ export class GridComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
 
-    if (this.issues.length >= maxResults) {
+    if (this.issues.length >= maxResults && this.cappedWarnedFor !== this.queue.id) {
       // BUG-12: the cap was silent, so a queue matching more than this looked
-      // like a queue with exactly this many issues.
+      // like a queue with exactly this many issues. Once per queue: opening one
+      // runs this twice, and two identical flags stack up on screen.
+      this.cappedWarnedFor = this.queue.id;
       JiraService.showNotification(
         'Showing the first ' + maxResults + ' issues',
         'This queue matches more issues than the grid loads. Narrow its JQL to see the rest.',
