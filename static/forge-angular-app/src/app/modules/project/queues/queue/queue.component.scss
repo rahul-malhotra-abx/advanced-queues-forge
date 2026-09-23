@@ -12,3 +12,18 @@
 .accordion-button:not(.collapsed) {
   background-color: #ffffff;
 }
+
+// The JQL field, ported from the Checklist editor: an invalid query turns the
+// field red and lists Jira's own reasons underneath, as Jira does.
+.jql-cm.jql-invalid {
+  border-color: var(--ds-border-danger, #c9372c);
+}
+
+.jql-errors {
+  font-size: 0.875rem;
+  color: var(--ds-text-danger, #ae2e24);
+
+  ul {
+    list-style: disc;
+  }
+}
