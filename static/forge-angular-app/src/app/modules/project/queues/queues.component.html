@@ -38,7 +38,13 @@
       </mat-menu>
     </div>
     <div class="queue-list">
-      <div class="d-flex" *ngIf="projectQueues?.length > 0">
+      <!--
+        BUG-31: this asked for PROJECT queues, so someone whose queues were all
+        personal lost the search box entirely and could not search their own
+        queues. The rail searches both lists, so the condition is now whether
+        the rail has anything in it.
+      -->
+      <div class="d-flex" *ngIf="myProjectAndPersonalQueues?.length > 0">
         <input class="form-control ms-1 me-3 my-2" placeholder="Search Queues" [(ngModel)]="searchFilter.name" />
         <div class="my-auto">
           <span class="ms-auto my-auto cursor-pointer text-dark" ngbTooltip="Sort Queues" [matMenuTriggerFor]="sortMenu">
