@@ -1,35 +1,158 @@
+/**
+ * The Assignee cell.
+ *
+ * Two states with opposite needs. At rest it is an ordinary cell and must lay
+ * out like its neighbours. While editing it is a popup list that has to escape
+ * the cell it belongs to, which is what the absolute positioning is for, and
+ * the row is lifted above later rows for the same reason (BUG-29).
+ */
+
+// AT REST: in flow, transparent, no floor under its width. The row's stripe,
+// hover and selection all show through, as in every other cell.
+.assignee-chip {
+  display: inline-flex;
+  align-items: center;
+  // Matched to the neighbouring cells, measured rather than guessed: vertical
+  // padding made the cell 4px taller than the one beside it, and an inline-flex
+  // box on the text baseline added 2px more on top of that.
+  vertical-align: middle;
+  gap: 4px;
+  max-width: 100%;
+  padding: 0 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  color: inherit;
+  // Translucent, not white: it tints whatever the row is currently painted,
+  // instead of hiding it (BUG-33).
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: rgba(9, 30, 66, 0.08);
+  }
+}
+
+.assignee-avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex: none;
+}
+
+// A long name shortens rather than reaching into the next column.
+.assignee-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// EDITING: out of flow so the list can overflow the cell, above the rows below,
+// and given a width of its own. Without one the widget sized itself from its
+// content and both the button and the list sprawled across the columns beside
+// it.
+// NO `position: relative` on the wrapper, and no top/left here.
+//
+// The cell's value span carries `overflow: hidden`. An absolutely positioned
+// box escapes that clip only while its containing block is OUTSIDE the span,
+// which means the cell itself. Anchoring to the wrapper instead put the
+// containing block inside the span, and the whole editor was clipped away:
+// the DOM held the button and the open list, and the screen showed an empty
+// rectangle (measured).
+//
+// With no offsets it opens at its static position, which is exactly where the
+// chip sat.
+.assignee-editor {
+  position: absolute;
+  z-index: 2;
+  width: 220px;
+}
+
+// One row in the open list, and the button's own selection. Flex with an
+// ellipsis, so a long name shortens instead of widening the list.
+.assignee-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.assignee-option-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #172b4d;
+  font-weight: normal;
+}
+
 ::ng-deep {
-  .assignee-multiselect-dropdown .multiselect-dropdown .dropdown-btn .selected-item {
-    border: 0px solid #91bdff !important;
-    background: #ffffff !important;
-    color: #0052cc !important;
-    padding: 5px 10px;
-    border-radius: 4px;
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
- 
-  .assignee-multiselect-dropdown .multiselect-dropdown .dropdown-btn .selected-item:hover {
-    border: 0px solid #000000 !important;
-    background: #cee3f1 !important;
-    color: #111213 !important;
-    cursor: pointer;
+  .assignee-multiselect-dropdown {
+    // The button while editing: the height of an ordinary cell, so opening the
+    // editor does not make the row jump.
+    .multiselect-dropdown .dropdown-btn {
+      display: flex !important;
+      align-items: center;
+      min-height: 26px;
+      padding: 1px 6px !important;
+      border: 1px solid #4c9aff !important;
+      border-radius: 3px !important;
+      background: #ffffff;
+    }
+
+    // The widget's own chrome for the selected value, which was a white 150px
+    // block with a hover colour of its own (BUG-33).
+    .multiselect-dropdown .dropdown-btn .selected-item {
+      min-width: 0 !important;
+      max-width: 100% !important;
+      padding: 0 !important;
+      border: 0 !important;
+      background: transparent !important;
+      color: inherit !important;
+    }
+
+    .multiselect-dropdown .dropdown-btn .selected-item:hover {
+      background: transparent !important;
+    }
+
+    .dropdown-list {
+      width: 100%;
+      margin-top: 2px !important;
+      padding-top: 0 !important;
+      border-radius: 3px;
+      box-shadow: 0 4px 8px rgba(9, 30, 66, 0.25);
+      // The list is as wide as the editor; nothing inside it may widen it.
+      overflow-x: hidden;
+    }
+
+    .dropdown-list .filter-textbox {
+      padding: 4px 8px !important;
+
+      input {
+        font-size: 12px;
+      }
+    }
+
+    .dropdown-list li {
+      padding: 4px 8px !important;
+      font-size: 12px;
+    }
+
+    // An issue has one assignee, so a checkbox per row offers a choice the list
+    // cannot honour. The library's own input is already clipped out of sight;
+    // the box the user sees is drawn on the sibling div, which also holds 2em
+    // open for it.
+    .dropdown-list .multiselect-item-checkbox input[type='checkbox'] + div {
+      padding-left: 0;
+
+      &::before,
+      &::after {
+        content: none;
+      }
+    }
   }
 
-  .assignee-multiselect-dropdown .multiselect-dropdown .dropdown-btn .selected-item {
-    border: 0px solid #000000 !important;
-    background: #ffffff !important;
-    color: #111213 !important;
-    min-width: 150px !important;
-    cursor: pointer;
-  }
-  .assignee-multiselect-dropdown .multiselect-dropdown .dropdown-btn {
-    border: 0px solid #000000 !important;
-    padding: 0px !important;
-  }
-
+  // ag-grid paints each row as its own layer, later rows over earlier ones, so
+  // the row being edited is lifted or its open list renders behind them.
   .ag-row.assignee-editing {
     z-index: 1;
   }
 }
-
-

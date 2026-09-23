@@ -659,7 +659,11 @@ export class JiraService {
   static getAssignees(projectKey: string): Promise<any[]> {
     if (!this.assignees.has(projectKey)) {
       const request = this.AP.request({
-        url: `/rest/api/3/user/assignable/search?project=${projectKey}`,
+        // maxResults defaults to 50, which silently truncates a project with
+        // more assignable people than that; 1,000 is the endpoint's ceiling.
+        // ponytail: page it, or wire the dropdown's own search to `query=`, if
+        // a customer ever has more than a thousand assignable users.
+        url: `/rest/api/3/user/assignable/search?project=${projectKey}&maxResults=1000`,
         type: 'GET',
         contentType: 'application/json',
       }).catch((e) => {

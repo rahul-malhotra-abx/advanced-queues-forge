@@ -1,26 +1,37 @@
 <div class="assignee-multiselect-dropdown">
-  <div style="position: absolute;">
-    <div class="multiselect-dropdown" *ngIf="!editing">
-      <span class="dropdown-btn" (click)="startEditing($event)">
-        <div class="selected-item">
-          <img [src]="selectedItems[0]?.avatarUrl" style="width: 18px; margin-right: 2px;" />
-          {{ selectedItems[0]?.displayName }}
-        </div>
-      </span>
-    </div>
-    <ng-multiselect-dropdown *ngIf="editing" id="two" [settings]="dropdownSettings" [data]="assignees"
+  <!--
+    The resting state is a plain cell: in flow, transparent, no fixed width. It
+    used to be the dropdown widget's own button, inside an absolutely positioned
+    wrapper, which left the cell measuring zero high, painted an opaque 150px
+    box over the next column, and hovered in its own colour instead of the
+    row's (BUG-33).
+  -->
+  <span class="assignee-chip" *ngIf="!editing" (click)="startEditing($event)" [title]="selectedItems[0]?.displayName">
+    <img class="assignee-avatar" [src]="selectedItems[0]?.avatarUrl" alt="" />
+    <span class="assignee-name">{{ selectedItems[0]?.displayName }}</span>
+  </span>
+
+  <!-- Only the OPEN list leaves the flow, so it can overflow the cell it belongs to. -->
+  <div class="assignee-editor" *ngIf="editing">
+    <ng-multiselect-dropdown id="two" [settings]="dropdownSettings" [data]="assignees"
       [ngModel]="selectedItems" (onSelect)="onAssigneeChange($event)" (onDropDownClose)="stopEditing()">
+      <!--
+        The widths here were inline and fixed: a 20px margin either side of the
+        avatar and a 130px floor under the label, which pushed the list wider
+        than itself and gave it a horizontal scrollbar. Flex and ellipsis
+        instead, so a long name shortens rather than widening the list.
+      -->
       <ng-template #optionsTemplate let-item let-option="option" let-id="id" let-isSelected="isSelected">
-        <div style="padding:1px 10px;margin-right:10px;right:2px;top:-2px; display: flex; align-items: center;">
-          <img [src]="assigneesById[id]?.avatarUrl" style="width: 18px; margin: 0 20px;" />
-          <label style="color: #333;min-width: 130px;font-weight:normal">{{ assigneesById[id]?.displayName }}</label>
+        <div class="assignee-option">
+          <img class="assignee-avatar" [src]="assigneesById[id]?.avatarUrl" alt="" />
+          <span class="assignee-option-name">{{ assigneesById[id]?.displayName }}</span>
         </div>
       </ng-template>
       <ng-template #optionSelectedTemplate let-option="option" let-id="id">
-        <div>
-          <img [src]="assigneesById[id]?.avatarUrl" style="width: 18px; margin-right: 2px;" />
-          {{ option }}
-        </div>
+        <span class="assignee-option">
+          <img class="assignee-avatar" [src]="assigneesById[id]?.avatarUrl" alt="" />
+          <span class="assignee-option-name">{{ option }}</span>
+        </span>
       </ng-template>
     </ng-multiselect-dropdown>
   </div>
