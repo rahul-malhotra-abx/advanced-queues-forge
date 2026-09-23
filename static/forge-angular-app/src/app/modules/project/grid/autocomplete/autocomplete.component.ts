@@ -14,11 +14,20 @@ export class AutocompleteComponent implements ICellEditorAngularComp {
 
   searchValue: string = '';
   issueKey: string = '';
+  /** The project of THIS row's issue, which decides who can be assigned to it. */
+  issueProjectKey: string = '';
   /**
    * The dropdown is built only once the cell is clicked. It keeps every user in the DOM even while closed, so one
    * per row made a 200-row page freeze while scrolling.
    */
   editing = false;
+  /**
+   * The one cell currently open, across every row. This is a cell RENDERER, not
+   * an ag-grid cell editor, so ag-grid never stops one for another; and opening
+   * swallows the click, so the already-open dropdown never hears the
+   * click-outside that would close it. Both cells stayed open (BUG-37).
+   */
+  private static openEditor: AutocompleteComponent | null = null;
   assignees: any[] = [];
   assigneesById: { [accountId: string]: any } = {};
   selectedItems: Array<any> = [];
@@ -48,6 +57,10 @@ export class AutocompleteComponent implements ICellEditorAngularComp {
       }
     ];
     this.issueKey = params.node.data.id;
+    // A queue's JQL is not bound to the project the queue lives in, so this row
+    // may belong to another project entirely. Who can be assigned to it is that
+    // project's question, not this page's (BUG-35).
+    this.issueProjectKey = params.node.data.fields?.project?.key ?? String(params.node.data.key ?? '').split('-')[0];
   }
 
   getValue(): any {
@@ -59,9 +72,13 @@ export class AutocompleteComponent implements ICellEditorAngularComp {
     event.stopPropagation();
     // ag-grid paints each row as its own layer, later rows over earlier ones, so the open list needs its row lifted.
     this.row = (event.currentTarget as HTMLElement).closest('.ag-row');
+    AutocompleteComponent.openEditor?.stopEditing();
+    AutocompleteComponent.openEditor = this;
     if (!this.assignees.length) {
-      const jiraContext = await JiraService.getContext();
-      const users = (await JiraService.getAssignees(jiraContext.jira.project.id)) || [];
+      // The ISSUE's project, falling back to the page's for a row that somehow
+      // carries neither a project nor a key.
+      const project = this.issueProjectKey || (await JiraService.getContext()).jira.project.id;
+      const users = (await JiraService.getAssignees(project)) || [];
       this.assignees = [
         { accountId: null, displayName: 'Unassigned', avatarUrl: AutocompleteComponent.AVATAR_PLACEHOLDER },
         ...users.map((user) => ({ ...user, avatarUrl: user.avatarUrls?.['16x16'] || AutocompleteComponent.AVATAR_PLACEHOLDER })),
@@ -71,6 +88,8 @@ export class AutocompleteComponent implements ICellEditorAngularComp {
         return byId;
       }, {});
     }
+    // The user clicked another cell while this one was still fetching its users.
+    if (AutocompleteComponent.openEditor !== this) return;
     this.editing = true;
     this.row?.classList.add('assignee-editing');
   }
@@ -78,6 +97,7 @@ export class AutocompleteComponent implements ICellEditorAngularComp {
   stopEditing(): void {
     this.editing = false;
     this.row?.classList.remove('assignee-editing');
+    if (AutocompleteComponent.openEditor === this) AutocompleteComponent.openEditor = null;
   }
 
   onAssigneeChange(selectedAssignee: any): void {
