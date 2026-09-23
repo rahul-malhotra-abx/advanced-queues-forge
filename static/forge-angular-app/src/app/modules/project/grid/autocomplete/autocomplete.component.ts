@@ -82,18 +82,31 @@ export class AutocompleteComponent implements ICellEditorAngularComp {
 
   onAssigneeChange(selectedAssignee: any): void {
     if (selectedAssignee) {
+      const previous = this.selectedItems[0];
       this.selectedItems = [this.assigneesById[selectedAssignee.accountId] ?? selectedAssignee];
       this.searchValue = selectedAssignee.displayName;
-      this.assignAssigneeToProject(selectedAssignee.accountId);
+      this.assignAssigneeToProject(selectedAssignee.accountId, previous);
     }
   }
 
-  async assignAssigneeToProject(assigneeId: string): Promise<void> {
+  async assignAssigneeToProject(assigneeId: string, previous?: any): Promise<void> {
     try {
-      const response = await JiraService.assignUserToIssue(assigneeId, this.issueKey);
-      console.log('Assignee assigned successfully:', response);
+      await JiraService.assignUserToIssue(assigneeId, this.issueKey);
     } catch (error) {
+      // BUG-12: the cell already shows the new name, so a failure here left the
+      // grid disagreeing with Jira and said nothing at all. The cell goes back
+      // to who the issue actually has.
       console.error('Error assigning assignee:', error);
+      if (previous) {
+        this.selectedItems = [previous];
+        this.searchValue = previous.displayName;
+      }
+      JiraService.showNotification(
+        'Assignee not changed',
+        `${this.issueKey} still has its previous assignee: Jira rejected the change.`,
+        'error',
+        'manual'
+      );
     }
   }
 }

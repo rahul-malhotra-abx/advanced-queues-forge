@@ -106,21 +106,21 @@
                           [ngClass]="queue.scope === QueueScopes.PROJECT ? 'fa-folder-open' : 'fa-user'"></i>
                         <a class="cursor-pointer text-decoration-none text-dark ms-1 w-100" (click)="loadQueue(folder, queue)">{{ queue.name }}</a>
                         <span class="ms-auto badge rounded-pill bg-light text-dark" *ngIf="queueListConfig.show.issueCount">
-                          {{ queue.lastRefreshedData?.count }}
+                          {{ queueRefreshData[queue.id]?.count }}
                         </span>
                       </div>
                       <div class="d-flex ms-1 mt-1 justify-content-between">
                         <div
                           class="text-black-35"
-                          *ngIf="queueListConfig.show.lastIssueCreateTime && queue.lastRefreshedData?.lastCreated"
-                          ngbTooltip="Last issue created in this queue {{ timeFormat(queue.lastRefreshedData?.lastCreated.fields.created) }}">
-                          {{ timeFormat(queue.lastRefreshedData?.lastCreated.fields.created) }}
+                          *ngIf="queueListConfig.show.lastIssueCreateTime && queueRefreshData[queue.id]?.lastCreated"
+                          ngbTooltip="Last issue created in this queue {{ timeFormat(queueRefreshData[queue.id].lastCreated.fields.created) }}">
+                          {{ timeFormat(queueRefreshData[queue.id].lastCreated.fields.created) }}
                         </div>
                         <div
                           class="text-black-35"
-                          *ngIf="queueListConfig.show.lastIssueUpdateTime && queue.lastRefreshedData?.lastUpdated"
-                          ngbTooltip="Last issue updated in this queue {{ timeFormat(queue.lastRefreshedData?.lastUpdated.fields.updated) }}">
-                          {{ timeFormat(queue.lastRefreshedData?.lastUpdated.fields.updated) }}
+                          *ngIf="queueListConfig.show.lastIssueUpdateTime && queueRefreshData[queue.id]?.lastUpdated"
+                          ngbTooltip="Last issue updated in this queue {{ timeFormat(queueRefreshData[queue.id].lastUpdated.fields.updated) }}">
+                          {{ timeFormat(queueRefreshData[queue.id].lastUpdated.fields.updated) }}
                         </div>
                       </div>
                       <div class="text-black-35 mt-1 ms-1" *ngIf="queueListConfig.show.description">
