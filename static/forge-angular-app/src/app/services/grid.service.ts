@@ -58,7 +58,10 @@ export class GridService {
       },
     ],
     defaultColDef: {
-      flex: 1,
+      // No `flex` here. It applied to EVERY column, so a status, a date and a
+      // summary all took an equal share whatever their content, and the column
+      // widths in the allow-list were ignored (BUG-36). The text columns carry
+      // their own flex; the rest keep the width their content needs.
       wrapText: true,
       autoHeight: true,
       sortable: false,
