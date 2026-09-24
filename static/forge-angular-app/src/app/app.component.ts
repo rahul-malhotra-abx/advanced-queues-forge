@@ -38,6 +38,10 @@ export class AppComponent implements OnInit {
       // outlet: the router needs its outlet, and this can flip after routing
       // has already happened.
       document.documentElement.classList.add('aq-unlicensed');
+      // And never route. Hidden is not stopped: behind the gate the queues
+      // page still loaded, ran its JQL and raised its own flags over the lock
+      // screen (BUG-39).
+      return;
     }
 
     let moduleKey: string | undefined;
