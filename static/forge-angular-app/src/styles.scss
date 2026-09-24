@@ -10,9 +10,9 @@ $aq-font-stack: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI',
   Roboto, Oxygen, Ubuntu, 'Helvetica Neue', sans-serif;
 
 // The licence gate. <router-outlet> renders nothing itself; the routed
-// component is its SIBLING, which is what actually needs hiding. Neither is
-// removed — the router keeps its outlet, and the gate can flip after routing
-// has already happened.
+// component is its SIBLING, which is what needs hiding. A backstop only: an
+// unlicensed user is never routed into the app (BUG-39), and this covers
+// anything the router renders on its own.
 html.aq-unlicensed app-root > *:not(.aq-licence-gate) {
   display: none;
 }
